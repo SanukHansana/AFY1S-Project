@@ -2,7 +2,10 @@ import express from "express";
 import {
   registerUser,
   loginUser,
- 
+  getUsers,
+  getUser,
+  updateUser,
+  deleteUser,
 } from "../controllers/UserController.js";
 import protect from "../middleware/authmiddleware.js";
 import authorize from "../middleware/rolemiddleware.js";
@@ -22,5 +25,12 @@ router.post(
 
 router.post("/login", loginUser);
 
+router.get("/", protect, authorize("admin"), getUsers);
+
+router.get("/:id", protect, getUser);
+
+router.put("/:id", protect, updateUser);
+
+router.delete("/:id", protect, authorize("admin"), deleteUser);
 
 export default router;
