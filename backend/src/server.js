@@ -7,7 +7,9 @@ import express from 'express';
 import notesRoutes from './routes/notesRoutes.js';  
 import {connectDB} from './config/db.js';
 import dotenv from 'dotenv';
-
+import cors from "cors";
+import userRoutes from "./routes/userroutes.js";
+import errorHandler from './middleware/errormiddleware.js';
 
 
 dotenv.config();
@@ -17,7 +19,12 @@ const PORT = process.env.PORT || 5001;
 
 app.use('/api', notesRoutes);
 
+app.use(cors());
+app.use(express.json());
 
+app.use("/api/users", userRoutes);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log("Server is running on port ", PORT);
