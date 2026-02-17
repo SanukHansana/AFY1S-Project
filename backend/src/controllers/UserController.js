@@ -55,3 +55,45 @@ export const loginUser = async (req, res) => {
   });
 };
 
+// Get All Users (Admin)
+export const getUsers = async (req, res) => {
+  const users = await User.find().select("-password");
+  res.json(users);
+};
+
+// Get Single User
+export const getUser = async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password");
+
+  if (!user)
+    return res.status(404).json({ message: "User not found" });
+
+  res.json(user);
+};
+
+// Update User
+export const updateUser = async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user)
+    return res.status(404).json({ message: "User not found" });
+
+  user.name = req.body.name || user.name;
+  user.email = req.body.email || user.email;
+  user.role = req.body.role || user.role;
+
+  await user.save();
+
+  res.json({ message: "User updated" });
+};
+
+// Delete User (Admin)
+export const deleteUser = async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user)
+    return res.status(404).json({ message: "User not found" });
+
+  await user.deleteOne();
+  res.json({ message: "User deleted" });
+};
