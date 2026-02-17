@@ -1,18 +1,14 @@
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-import mongoose from 'mongoose';
+dotenv.config(); // loads variables from .env
 
 export const connectDB = async () => {
-    
-    try{
-       
-
-        await mongoose.connect("mongodb+srv://year3semester1project_db_user:gwUm9W0fJofjZ7jD@afprojects.hucep3e.mongodb.net/?appName=AFProjects");
-        console.log('MongoDB connected successfully');
-    }catch (error){
-        console.error('MongoDB connection error:', error);
+    try {
+        await mongoose.connect(process.env.MONGO_URI); // use env variable
+        console.log("MongoDB connected successfully");
+    } catch (error) {
+        console.error("MongoDB connection error:", error);
         process.exit(1);
-    }   
-
+    }
 };
-
-
