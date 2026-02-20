@@ -1,24 +1,91 @@
-# Node modules
-node_modules/
-
 # Logs
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
-# Environment variables
-.env
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output
+lib-cov
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+web_modules/
 
 # Build outputs
 dist/
 build/
+.next
+.nuxt
+out
+.vuepress/dist
+.svelte-kit/
+**/.vitepress/dist
+build/Release
+
+# Cache
+.cache/
+.parcel-cache
+.temp
+.eslintcache
+.stylelintcache
+.npm
+.grunt
+.fusebox/
+.docusaurus
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+
+# Yarn v3
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.yarn-integrity
+
+# Cloud / Serverless
+.serverless/
+.dynamodb/
+.firebase/
+
+# Misc
+*.tgz
+.lock-wscript
+.node_repl_history
+.tern-port
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# IDE files (optional)
+# IDE files
 .vscode/
+.vscode-test/
 .idea/
+
