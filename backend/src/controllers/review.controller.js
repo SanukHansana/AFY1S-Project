@@ -1,11 +1,23 @@
 import * as reviewService from "../services/review.service.js";
+import { checkModeration } from "../utils/moderation.js";
 
 // Create Review
 export const createReview = async (req, res, next) => {
   try {
+    const textToCheck = `${req.body.title} ${req.body.comment}`;
+
+    const moderation = await checkModeration(textToCheck);
+
+    if (moderation.flagged) {
+      return res.status(400).json({
+        message: "Review contains toxic or harmful content.",
+        details: moderation.scores,
+      });
+    }
+
     const review = await reviewService.createReview({
       ...req.body,
-      user: req.user.id, // from protect middleware
+      user: req.user.id,
     });
 
     res.status(201).json(review);
