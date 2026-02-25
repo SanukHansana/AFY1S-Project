@@ -13,7 +13,7 @@ import errorHandler from './middleware/errormiddleware.js'
 import reviewRoutes from "./routes/review.routes.js";
 import skillRoutes from "./routes/skillRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
-
+import jobRoutes from "./routes/jobRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -29,6 +29,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/jobs", jobRoutes);
 
 app.use(errorHandler);
 
