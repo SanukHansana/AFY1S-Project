@@ -11,6 +11,7 @@ import reviewRoutes from "./routes/review.routes.js";
 import skillRoutes from "./routes/skillRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
+import exchangeRoutes from "./routes/exchangeRoutes.js";
 
 
 const app = express();
@@ -26,6 +27,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/exchange", exchangeRoutes);
 
 app.use(errorHandler);
 
