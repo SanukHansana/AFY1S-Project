@@ -1,4 +1,4 @@
-
+//./backend/src/controllers/review.controller.js
 import * as reviewService from "../services/review.service.js";
 import { checkModeration } from "../utils/moderation.js";
 

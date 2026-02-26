@@ -1,4 +1,4 @@
-
+//./backend/src/controllers/notesControllers.js
 import Note from '../models/Note.js';
 
 export async function getAllNotes(req, res) {
