@@ -81,6 +81,15 @@ const jobSchema = new mongoose.Schema(
       default: "",
       index: true,
     },
+
+
+    // add base curency
+    baseCurrency: {
+      type: String,
+      default: "USD",
+      enum: ["USD"]
+    },
+
   },
   { timestamps: true }
 );

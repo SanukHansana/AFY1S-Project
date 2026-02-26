@@ -1,7 +1,7 @@
 //backend/src/controllers/jobController.js
 import * as jobService from "../services/job.service.js";
 import Job from "../models/Job.js";
-
+import { convertCurrency } from "../services/exchangeRate.service.js";
 // Create Job (Client/Employer)
 export const createJob = async (req, res, next) => {
   try {
@@ -21,6 +21,8 @@ export const createJob = async (req, res, next) => {
   }
 };
 
+
+
 // Get All Jobs (Public with filters + pagination)
 export const getJobs = async (req, res, next) => {
   try {
@@ -30,7 +32,8 @@ export const getJobs = async (req, res, next) => {
     if (req.query.status) filter.status = req.query.status;
     if (req.query.category) filter.category = req.query.category;
     if (req.query.jobType) filter.jobType = req.query.jobType;
-    if (req.query.location) filter.location = { $regex: req.query.location, $options: "i" };
+    if (req.query.location)
+      filter.location = { $regex: req.query.location, $options: "i" };
 
     // skill filter: ?skill=react  (matches skillsRequired array)
     if (req.query.skill) {
@@ -44,11 +47,48 @@ export const getJobs = async (req, res, next) => {
 
     const result = await jobService.getJobs(filter, req.query);
 
-    res.status(200).json(result);
+    // ✅ currency conversion (optional)
+    const targetCurrency = req.query.currency; // ex: LKR, EUR
+    if (!targetCurrency) {
+      return res.status(200).json(result);
+    }
+
+    // Convert each job's USD budget -> target currency
+    const convertedJobs = await Promise.all(
+      result.jobs.map(async (job) => {
+        const conversion = await convertCurrency({
+          amount: job.budget,
+          from: "USD",
+          to: targetCurrency,
+        });
+
+        return {
+          ...job.toObject(),
+          budgetConverted: {
+            currency: targetCurrency,
+            amount: conversion.convertedAmount,
+            rate: conversion.rate,
+            fetchedAt: conversion.fetchedAt,
+            cached: conversion.cached,
+          },
+        };
+      })
+    );
+
+    res.status(200).json({
+      ...result,
+      jobs: convertedJobs,
+      conversionBase: "USD",
+      conversionTarget: targetCurrency,
+    });
   } catch (err) {
     next(err);
   }
 };
+
+
+
+
 
 // Get Single Job
 export const getJob = async (req, res, next) => {
@@ -57,7 +97,26 @@ export const getJob = async (req, res, next) => {
 
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    res.json(job);
+    const targetCurrency = req.query.currency; // optional
+    if (!targetCurrency) return res.json(job);
+
+    const conversion = await convertCurrency({
+      amount: job.budget,
+      from: "USD",
+      to: targetCurrency,
+    });
+
+    res.json({
+      ...job.toObject(),
+      budgetConverted: {
+        currency: targetCurrency,
+        amount: conversion.convertedAmount,
+        rate: conversion.rate,
+        fetchedAt: conversion.fetchedAt,
+        cached: conversion.cached,
+      },
+      conversionBase: "USD",
+    });
   } catch (err) {
     next(err);
   }
