@@ -1,3 +1,4 @@
+//./backend/src/routes/skillRoutes.js
 import express from "express";
 import {
   createSkill,
