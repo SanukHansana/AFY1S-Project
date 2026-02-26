@@ -1,12 +1,8 @@
-//./backend/src/server.js
-//import exoress from 'express';
-
-
-
+import dotenv from 'dotenv';
+dotenv.config()
 import express from 'express';
 import notesRoutes from './routes/notesRoutes.js';  
 import {connectDB} from './config/db.js';
-import dotenv from 'dotenv';
 import cors from "cors";
 import userRoutes from "./routes/userRoutes.js";
 import errorHandler from './middleware/errormiddleware.js'
@@ -15,16 +11,15 @@ import skillRoutes from "./routes/skillRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 
-dotenv.config();
+
 const app = express();
 connectDB();
 const PORT = process.env.PORT || 5001;
 
-app.use('/api', notesRoutes);
-
 app.use(cors());
 app.use(express.json());
 
+app.use('/api', notesRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/skills", skillRoutes);

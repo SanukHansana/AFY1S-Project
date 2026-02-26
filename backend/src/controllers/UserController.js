@@ -3,7 +3,7 @@ import User from "../models/UserModels.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { validationResult } from "express-validator";
-
+import { sendWelcomeEmail } from "../services/emailServices.js";
 // Generate Token
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -12,7 +12,9 @@ const generateToken = (id, role) => {
 };
 
 // Register
+
 export const registerUser = async (req, res) => {
+  console.log("REGISTER ROUTE HIT");
   const errors = validationResult(req);
   if (!errors.isEmpty())
     return res.status(400).json({ errors: errors.array() });
@@ -31,7 +33,13 @@ export const registerUser = async (req, res) => {
     password: hashedPassword,
     role,
   });
-
+  // Inside registerUser controller
+try {
+    console.log("Attempting to send welcome email to:", user.email);
+    await sendWelcomeEmail(user.email, user.name);
+  } catch (error) {
+    console.error("User created, but email failed:", error.message);
+  }
   res.status(201).json({
     token: generateToken(user._id, user.role),
     user,
