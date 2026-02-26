@@ -2,6 +2,7 @@
 import mongoose from "mongoose";
 import Course from "../models/Course.js";
 import Skill from "../models/Skill.js";
+import { body, param, validationResult } from "express-validator";
 
 // Helper function for consistent response format
 const sendResponse = (res, statusCode, success, message, data = null) => {
@@ -12,16 +13,103 @@ const sendResponse = (res, statusCode, success, message, data = null) => {
   });
 };
 
+// Helper function to handle validation errors
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => ({
+      field: error.path,
+      message: error.msg,
+      value: error.value
+    }));
+    return sendResponse(res, 400, false, "Validation failed", errorMessages);
+  }
+  next();
+};
+
+// Validation rules for creating a course
+export const validateCreateCourse = [
+  body('title')
+    .trim()
+    .isLength({ min: 6, max: 200 })
+    .withMessage('Title must be between 6 and 200 characters')
+    .matches(/^[a-zA-Z0-9\s\-_.,!?]+$/)
+    .withMessage('Title can only contain letters, numbers, spaces, and basic punctuation'),
+  
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Description must be between 10 and 1000 characters'),
+  
+  body('skillId')
+    .isMongoId()
+    .withMessage('Invalid skill ID format'),
+  
+  body('duration')
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Duration must be a number between 1 and 1000 hours'),
+  
+  handleValidationErrors
+];
+
+// Validation rules for getting course by ID
+export const validateGetCourseById = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid course ID format'),
+  
+  handleValidationErrors
+];
+
+// Validation rules for updating a course
+export const validateUpdateCourse = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid course ID format'),
+  
+  body('title')
+    .optional()
+    .trim()
+    .isLength({ min: 5, max: 200 })
+    .withMessage('Title must be between 5 and 200 characters')
+    .matches(/^[a-zA-Z0-9\s\-_.,!?]+$/)
+    .withMessage('Title can only contain letters, numbers, spaces, and basic punctuation'),
+  
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Description must be between 10 and 1000 characters'),
+  
+  body('skillId')
+    .optional()
+    .isMongoId()
+    .withMessage('Invalid skill ID format'),
+  
+  body('duration')
+    .optional()
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Duration must be a number between 1 and 1000 hours'),
+  
+  handleValidationErrors
+];
+
+// Validation rules for deleting a course
+export const validateDeleteCourse = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid course ID format'),
+  
+  handleValidationErrors
+];
+
 // Create Course with skillId validation
 export const createCourse = async (req, res) => {
   try {
     const { title, description, skillId, duration } = req.body;
 
     // Validate skillId exists
-    if (!mongoose.Types.ObjectId.isValid(skillId)) {
-      return sendResponse(res, 400, false, "Invalid skill ID format");
-    }
-
     const skill = await Skill.findById(skillId);
     if (!skill) {
       return sendResponse(res, 404, false, "Skill not found");

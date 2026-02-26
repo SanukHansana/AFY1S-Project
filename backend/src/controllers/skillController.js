@@ -1,6 +1,8 @@
 //backend/src/controllers/skillController.js
 import mongoose from "mongoose";
 import Skill from "../models/Skill.js";
+import { body, param, validationResult } from "express-validator";
+import axios from "axios";
 
 // Helper function for consistent response format
 const sendResponse = (res, statusCode, success, message, data = null) => {
@@ -10,6 +12,82 @@ const sendResponse = (res, statusCode, success, message, data = null) => {
     data
   });
 };
+
+// Helper function to handle validation errors
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => ({
+      field: error.path,
+      message: error.msg,
+      value: error.value
+    }));
+    return sendResponse(res, 400, false, "Validation failed", errorMessages);
+  }
+  next();
+};
+
+// Helper function to fetch description from Wikipedia API
+const fetchWikipediaDescription = async (skillName) => {
+  try {
+    // Format the skill name for Wikipedia URL (replace spaces with underscores)
+    const formattedName = skillName.replace(/\s+/g, '_');
+    
+    // Call Wikipedia REST API
+    const response = await axios.get(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${formattedName}`,
+      {
+        timeout: 5000, // 5 second timeout
+        headers: {
+          'User-Agent': 'Learning-Platform-API/1.0'
+        }
+      }
+    );
+    
+    // Extract the description from the response
+    if (response.data && response.data.extract) {
+      // Limit description to 500 characters for our model
+      const description = response.data.extract.substring(0, 500);
+      return description;
+    }
+    
+    return null;
+  } catch (error) {
+    // Log the error but don't fail the skill creation
+    console.log(`Wikipedia API error for "${skillName}":`, error.message);
+    return null;
+  }
+};
+
+// Validation rules for creating a skill
+export const validateCreateSkill = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be between 2 and 100 characters')
+    .matches(/^[a-zA-Z0-9\s\-_]+$/)
+    .withMessage('Name can only contain letters, numbers, spaces, hyphens, and underscores'),
+  
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters'),
+  
+  body('category')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Category must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z0-9\s\-_]+$/)
+    .withMessage('Category can only contain letters, numbers, spaces, hyphens, and underscores'),
+  
+  body('level')
+    .isIn(['Beginner', 'Intermediate', 'Advanced'])
+    .withMessage('Level must be either Beginner, Intermediate, or Advanced'),
+  
+  handleValidationErrors
+];
 
 // Create Skill
 export const createSkill = async (req, res) => {
@@ -22,9 +100,23 @@ export const createSkill = async (req, res) => {
       return sendResponse(res, 400, false, "Skill with this name already exists");
     }
 
+    // Auto-fetch description from Wikipedia if not provided
+    let finalDescription = description;
+    if (!description || description.trim() === '') {
+      console.log(`Fetching Wikipedia description for skill: ${name}`);
+      finalDescription = await fetchWikipediaDescription(name);
+      
+      if (finalDescription) {
+        console.log(`✅ Successfully fetched description from Wikipedia for "${name}"`);
+      } else {
+        console.log(`⚠️  No Wikipedia description found for "${name}", using default`);
+        finalDescription = `${name} - A technical skill for learning and development.`;
+      }
+    }
+
     const skill = new Skill({
       name,
-      description,
+      description: finalDescription,
       category,
       level
     });
@@ -82,14 +174,64 @@ export const getAllSkills = async (req, res) => {
   }
 };
 
+// Validation rules for getting skill by ID
+export const validateGetSkillById = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid skill ID format'),
+  
+  handleValidationErrors
+];
+
+// Validation rules for updating a skill
+export const validateUpdateSkill = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid skill ID format'),
+  
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be between 2 and 100 characters')
+    .matches(/^[a-zA-Z0-9\s\-_]+$/)
+    .withMessage('Name can only contain letters, numbers, spaces, hyphens, and underscores'),
+  
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters'),
+  
+  body('category')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Category must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z0-9\s\-_]+$/)
+    .withMessage('Category can only contain letters, numbers, spaces, hyphens, and underscores'),
+  
+  body('level')
+    .optional()
+    .isIn(['Beginner', 'Intermediate', 'Advanced'])
+    .withMessage('Level must be either Beginner, Intermediate, or Advanced'),
+  
+  handleValidationErrors
+];
+
+// Validation rules for deleting a skill
+export const validateDeleteSkill = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid skill ID format'),
+  
+  handleValidationErrors
+];
+
 // Get Skill by ID
 export const getSkillById = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return sendResponse(res, 400, false, "Invalid skill ID format");
-    }
 
     const skill = await Skill.findById(id);
 
@@ -109,10 +251,6 @@ export const updateSkill = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, category, level } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return sendResponse(res, 400, false, "Invalid skill ID format");
-    }
 
     // Check if skill exists
     const existingSkill = await Skill.findById(id);
@@ -145,10 +283,6 @@ export const updateSkill = async (req, res) => {
 export const deleteSkill = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return sendResponse(res, 400, false, "Invalid skill ID format");
-    }
 
     const skill = await Skill.findById(id);
 
