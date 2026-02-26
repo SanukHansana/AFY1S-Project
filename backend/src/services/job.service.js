@@ -1,4 +1,4 @@
-//./backend/src/services/job.service.js
+//backend/src/services/job.service.js
 import mongoose from "mongoose";
 import Job from "../models/Job.js";
 

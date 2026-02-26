@@ -1,4 +1,4 @@
-//./backend/src/models/review.model.js
+//backend/src/models/review.model.js
 import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(

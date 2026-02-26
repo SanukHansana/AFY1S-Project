@@ -1,4 +1,4 @@
-//./backend/src/routes/userRoutes.js
+//backend/src/routes/userRoutes.js
 import express from "express";
 import {
   registerUser,

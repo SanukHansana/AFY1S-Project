@@ -1,4 +1,4 @@
-//./backend/src/routes/jobRoutes.js
+//backend/src/routes/jobRoutes.js
 import express from "express";
 import protect from "../middleware/authmiddleware.js";
 import authorize from "../middleware/rolemiddleware.js";

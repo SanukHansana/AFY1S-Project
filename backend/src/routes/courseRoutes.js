@@ -1,4 +1,4 @@
-//./backend/src/routes/courseRoutes.js
+//backend/src/routes/courseRoutes.js
 import express from "express";
 import {
   createCourse,

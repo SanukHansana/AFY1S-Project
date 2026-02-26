@@ -1,3 +1,4 @@
+//backend/src/services/emailServices.js
 import sgMail from "@sendgrid/mail";
 
 export const sendWelcomeEmail = async (toEmail, name) => {

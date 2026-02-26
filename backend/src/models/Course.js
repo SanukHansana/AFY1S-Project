@@ -1,4 +1,4 @@
-//./backend/src/models/Course.js
+//backend/src/models/Course.js
 import mongoose from "mongoose";
 
 const courseSchema = new mongoose.Schema(

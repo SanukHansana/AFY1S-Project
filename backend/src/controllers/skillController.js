@@ -1,4 +1,4 @@
-//./backend/src/controllers/skillController.js
+//backend/src/controllers/skillController.js
 import mongoose from "mongoose";
 import Skill from "../models/Skill.js";
 

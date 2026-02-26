@@ -1,4 +1,4 @@
-//./backend/src/models/Skill.js
+//backend/src/models/Skill.js
 import mongoose from "mongoose";
 
 const skillSchema = new mongoose.Schema(

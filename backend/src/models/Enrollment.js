@@ -1,4 +1,4 @@
-//./backend/src/models/Enrollment.js
+//backend/src/models/Enrollment.js
 import mongoose from "mongoose";
 
 const enrollmentSchema = new mongoose.Schema(

@@ -1,4 +1,4 @@
-//./backend/src/routes/notesRoutes.js
+//backend/src/routes/notesRoutes.js
 import express from 'express';
 import { getAllNotes } from '../controllers/notesControllers.js';
 

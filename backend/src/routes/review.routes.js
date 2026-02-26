@@ -1,4 +1,4 @@
-//./backend/src/routes/review.routes.js
+//backend/src/routes/review.routes.js
 import express from "express";
 import {
   createReview,
