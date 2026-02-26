@@ -47,7 +47,7 @@ export const getJobs = async (req, res, next) => {
 
     const result = await jobService.getJobs(filter, req.query);
 
-    // ✅ currency conversion (optional)
+    //currency conversion (optional)
     const targetCurrency = req.query.currency; // ex: LKR, EUR
     if (!targetCurrency) {
       return res.status(200).json(result);
