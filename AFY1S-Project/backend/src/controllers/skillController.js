@@ -2,6 +2,7 @@
 import mongoose from "mongoose";
 import Skill from "../models/Skill.js";
 import { body, param, validationResult } from "express-validator";
+import axios from "axios";
 
 // Helper function for consistent response format
 const sendResponse = (res, statusCode, success, message, data = null) => {
@@ -24,6 +25,36 @@ const handleValidationErrors = (req, res, next) => {
     return sendResponse(res, 400, false, "Validation failed", errorMessages);
   }
   next();
+};
+
+// Helper function to fetch description from Wikipedia
+const fetchWikipediaDescription = async (skillName) => {
+  try {
+    // Format the skill name for Wikipedia URL
+    const formattedName = encodeURIComponent(skillName.trim());
+    const wikipediaUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${formattedName}`;
+    
+    console.log(`Fetching Wikipedia description for: ${skillName}`);
+    
+    const response = await axios.get(wikipediaUrl, {
+      timeout: 5000, // 5 second timeout
+      headers: {
+        'User-Agent': 'Learning-Platform-API/1.0'
+      }
+    });
+    
+    if (response.data && response.data.extract) {
+      // Limit description to 500 characters for database storage
+      const description = response.data.extract.substring(0, 500);
+      console.log(`Successfully fetched description for ${skillName}`);
+      return description;
+    }
+    
+    return null;
+  } catch (error) {
+    console.log(`Wikipedia API error for ${skillName}:`, error.response?.status || error.message);
+    return null;
+  }
 };
 
 // Validation rules for creating a skill
@@ -56,7 +87,7 @@ export const validateCreateSkill = [
   handleValidationErrors
 ];
 
-// Create Skill
+// Create Skill with Wikipedia auto-description
 export const createSkill = async (req, res) => {
   try {
     const { name, description, category, level } = req.body;
@@ -67,15 +98,31 @@ export const createSkill = async (req, res) => {
       return sendResponse(res, 400, false, "Skill with this name already exists");
     }
 
+    // Auto-fetch description from Wikipedia if not provided
+    let finalDescription = description;
+    if (!description || description.trim() === '') {
+      console.log(`No description provided for "${name}", fetching from Wikipedia...`);
+      finalDescription = await fetchWikipediaDescription(name);
+      
+      if (!finalDescription) {
+        console.log(`Could not fetch Wikipedia description for "${name}", using default`);
+        finalDescription = `${name} is a technical skill that can be learned and developed through practice and study.`;
+      }
+    }
+
     const skill = new Skill({
       name,
-      description,
+      description: finalDescription,
       category,
       level
     });
 
     const savedSkill = await skill.save();
-    sendResponse(res, 201, true, "Skill created successfully", savedSkill);
+
+    sendResponse(res, 201, true, "Skill created successfully", {
+      ...savedSkill.toObject(),
+      descriptionSource: description ? 'user' : 'wikipedia'
+    });
   } catch (error) {
     console.error("Error creating skill:", error);
     sendResponse(res, 500, false, "Internal server error", error.message);
