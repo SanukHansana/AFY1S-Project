@@ -5,24 +5,28 @@ import {
   getAllSkills,
   getSkillById,
   updateSkill,
-  deleteSkill
+  deleteSkill,
+  validateCreateSkill,
+  validateGetSkillById,
+  validateUpdateSkill,
+  validateDeleteSkill
 } from "../controllers/skillController.js";
 
 const router = express.Router();
 
 // Create a new skill
-router.post("/", createSkill);
+router.post("/", validateCreateSkill, createSkill);
 
 // Get all skills with pagination and optional search by level
 router.get("/", getAllSkills);
 
 // Get a specific skill by ID
-router.get("/:id", getSkillById);
+router.get("/:id", validateGetSkillById, getSkillById);
 
 // Update a skill by ID
-router.put("/:id", updateSkill);
+router.put("/:id", validateUpdateSkill, updateSkill);
 
 // Delete a skill by ID
-router.delete("/:id", deleteSkill);
+router.delete("/:id", validateDeleteSkill, deleteSkill);
 
 export default router;

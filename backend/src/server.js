@@ -10,6 +10,7 @@ import errorHandler from './middleware/errormiddleware.js'
 import reviewRoutes from "./routes/review.routes.js";
 import skillRoutes from "./routes/skillRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
+import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import exchangeRoutes from "./routes/exchangeRoutes.js";
 
@@ -26,6 +27,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/exchange", exchangeRoutes);
 
