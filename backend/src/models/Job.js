@@ -46,7 +46,7 @@ const jobSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ✅ recommended for apply flow
+   
     applicants: [
       {
         type: mongoose.Schema.Types.ObjectId,

@@ -1,3 +1,4 @@
+//backend/src/controllers/enrollmentController.js
 import mongoose from "mongoose";
 import Enrollment from "../models/Enrollment.js";
 import Course from "../models/Course.js";
