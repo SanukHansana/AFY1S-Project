@@ -23,6 +23,14 @@ const reviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+    },
+    job: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job",
+    },
   },
   { timestamps: true }
 );
