@@ -14,7 +14,7 @@ function NavBar() {
   }, [])
 
   const navLinks = [
-    { label: 'Find Talent', to: '/talent' },
+    { label: 'Find Talent', to: '/skills' },
     { label: 'Find Work', to: '/jobs' },
     { label: 'Courses', to: '/courses' },
     { label: 'About', to: '/about' },
