@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getSkills, deleteSkill } from '../services/skillService.jsx';
 import SkillForm from '../Components/SkillForm.jsx';
 import EditSkillForm from '../Components/EditSkillForm.jsx';
-import NavBar from '../components/Navbar.jsx';
+import NavBar from '../Components/NavBar.jsx';
 import Footer from '../Components/Footer.jsx';
 import toast from 'react-hot-toast';
 

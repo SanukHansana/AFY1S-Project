@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import NotePage from './pages/NotePage'
 import Skills from './pages/Skills.jsx'
 import Register from './Components/RegisterPage'
+import AdminReviewDashboard from "./pages/review/AdminReviewDashboard";
 
 
 
@@ -16,6 +17,7 @@ function App() {
         <Route path='/note' element={<NotePage />} />
         <Route path='/skills' element={<Skills />} />
         <Route path='/register' element={<Register />} />
+        <Route path="/reviews/dashboard" element={<AdminReviewDashboard />} />
 
       </Routes>
     </div>
