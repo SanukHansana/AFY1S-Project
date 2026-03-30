@@ -1,4 +1,5 @@
-//backend/src/controllers/review.controller.js
+// backend/src/controllers/review.controller.js
+
 import * as reviewService from "../services/review.service.js";
 import { checkModeration } from "../utils/moderation.js";
 
@@ -51,24 +52,25 @@ export const getReview = async (req, res, next) => {
   try {
     const review = await reviewService.getReviewById(req.params.id);
 
-    if (!review)
+    if (!review) {
       return res.status(404).json({ message: "Review not found" });
+    }
 
-    res.json(review);
+    res.status(200).json(review);
   } catch (err) {
     next(err);
   }
 };
 
-// Update Review (Owner Only)
+// Update Review
 export const updateReview = async (req, res, next) => {
   try {
     const review = await reviewService.getReviewById(req.params.id);
 
-    if (!review)
+    if (!review) {
       return res.status(404).json({ message: "Review not found" });
+    }
 
-    // Owner check
     if (review.user._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -78,21 +80,21 @@ export const updateReview = async (req, res, next) => {
       req.body
     );
 
-    res.json(updated);
+    res.status(200).json(updated);
   } catch (err) {
     next(err);
   }
 };
 
-// Delete Review (Owner or Admin)
+// Delete Review
 export const deleteReview = async (req, res, next) => {
   try {
     const review = await reviewService.getReviewById(req.params.id);
 
-    if (!review)
+    if (!review) {
       return res.status(404).json({ message: "Review not found" });
+    }
 
-    // Owner or admin
     if (
       review.user._id.toString() !== req.user.id &&
       req.user.role !== "admin"

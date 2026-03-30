@@ -75,6 +75,19 @@ export default function AdminReviewDashboard() {
                   User: {review.user?.name || review.user}
                 </p>
 
+                {/* ✅ Show Course OR Job */}
+                {review.course && (
+                  <p style={{ fontSize: "13px", color: "#2c3e50" }}>
+                    🎓 Course: {review.course?.title}
+                  </p>
+                )}
+
+                {review.job && (
+                  <p style={{ fontSize: "13px", color: "#2c3e50" }}>
+                    💼 Job: {review.job?.title}
+                  </p>
+                )}
+
                 <button
                   onClick={() => handleDelete(review._id)}
                   style={{
