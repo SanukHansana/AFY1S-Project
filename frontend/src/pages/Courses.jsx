@@ -1,0 +1,422 @@
+import React, { useState, useEffect } from 'react';
+import { getCourses, updateCourse, deleteCourse } from '../services/courseService.jsx';
+import { useNavigate } from 'react-router-dom';
+import NavBar from '../components/Navbar.jsx';
+import Footer from '../components/Footer.jsx';
+import CourseEditForm from '../components/CourseEditForm.jsx';
+import toast from 'react-hot-toast';
+
+const Courses = () => {
+  const navigate = useNavigate();
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        console.log('Fetching courses...');
+        const data = await getCourses();
+        console.log('Courses data received:', data);
+        
+        let coursesArray = [];
+        
+        if (Array.isArray(data)) {
+          coursesArray = data;
+        } else if (data?.courses && Array.isArray(data.courses)) {
+          coursesArray = data.courses;
+        } else if (data?.data?.courses && Array.isArray(data.data.courses)) {
+          coursesArray = data.data.courses;
+        } else {
+          console.warn('Unexpected data format:', data);
+          coursesArray = [];
+        }
+        
+        console.log('Final courses array:', coursesArray);
+        setCourses(coursesArray);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+        setError('Failed to fetch courses');
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const handleEdit = (course) => {
+    setEditingCourse(course);
+    setShowEditForm(true);
+    setShowDetails(false);
+  };
+
+  const handleDelete = async (course) => {
+    if (window.confirm(`Are you sure you want to delete "${course.title || 'this course'}"?`)) {
+      try {
+        const courseId = course.id || course._id;
+        console.log('Deleting course with ID:', courseId);
+        await deleteCourse(courseId);
+        toast.success('Course deleted successfully!');
+        setCourses(prev => prev.filter(c => (c.id || c._id) !== courseId));
+        setShowDetails(false);
+      } catch (error) {
+        console.error('Error deleting course:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to delete course';
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  const handleUpdate = async (updatedData) => {
+    try {
+      const courseId = editingCourse.id || editingCourse._id;
+      console.log('Updating course with ID:', courseId, 'Data:', updatedData);
+      await updateCourse(courseId, updatedData);
+      toast.success('Course updated successfully!');
+      setCourses(prev => prev.map(c => 
+        (c.id || c._id) === courseId 
+          ? { ...c, ...updatedData } 
+          : c
+      ));
+      setShowEditForm(false);
+      setEditingCourse(null);
+    } catch (error) {
+      console.error('Error updating course:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      
+      let errorMessage = 'Failed to update course';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+        
+        // If there are validation errors in data array, show them
+        if (error.response.data.data && Array.isArray(error.response.data.data)) {
+          const validationErrors = error.response.data.data;
+          console.log('Validation errors:', validationErrors);
+          
+          if (validationErrors.length > 0) {
+            // Show specific validation errors
+            if (typeof validationErrors[0] === 'string') {
+              errorMessage = validationErrors[0];
+            } else if (validationErrors[0].message) {
+              errorMessage = validationErrors[0].message;
+            } else if (validationErrors[0].field && validationErrors[0].error) {
+              errorMessage = `${validationErrors[0].field}: ${validationErrors[0].error}`;
+            }
+          }
+        }
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data) {
+        errorMessage = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : JSON.stringify(error.response.data);
+      }
+      
+      toast.error(errorMessage);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="alert alert-error max-w-md">
+          <svg className="w-6 h-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h.013a2 2 0 012.925-2.075 2.075C2.06 16.082 2.06 16.082a2 2 0 012.925-2.075 2.075C2.06 19.918 2.06 19.918a2 2 0 012.925-2.075 2.075C2.06 24 2.06 24a2 2 0 012.925-2.075 2.075z" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <NavBar />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="container mx-auto px-4 py-8 pt-24">
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+              Courses & Learning
+            </h1>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
+              Discover and enroll in professional courses. Enhance your skills portfolio.
+            </p>
+            <button
+              onClick={() => navigate('/courses/new')}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Course
+            </button>
+          </div>
+
+          {!Array.isArray(courses) || courses.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto">
+                <div className="mb-8">
+                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C7.757 5.173 5.12 5.12h3.628l-1.083-1.083A2.125 2.125 0 018.75 8.75H4.125A2.125 2.125 0 012 6.75v8.75a2.125 2.125 0 012.925-2.075 2.075C2.06 19.918 2.06 19.918a2 2 0 012.925-2.075 2.075C2.06 24 2.06 24a2 2 0 012.925-2.075 2.075z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No Courses Found</h3>
+                  <p className="text-gray-500 mb-6">
+                    Start by creating your first course or check back later for new content.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.map((course) => (
+                <div key={course.id || course._id || Math.random()} className="group relative overflow-hidden">
+                  <div className="card bg-white border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                    <div className="card-body p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C7.757 5.173 5.12 5.12h3.628l-1.083-1.083A2.125 2.125 0 018.75 8.75H4.125A2.125 2.125 0 012 6.75v8.75a2.125 2.125 0 012.925-2.075 2.075C2.06 19.918 2.06 19.918a2 2 0 012.925-2.075 2.075C2.06 24 2.06 24a2 2 0 012.925-2.075 2.075z" />
+                        </svg>
+                      </div>
+                      
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">{course.title || 'Untitled Course'}</h3>
+                      
+                      <div className="flex items-center gap-2 mb-3">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-gray-600 text-sm">{course.duration || 'Duration not specified'}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-4">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-gray-600 text-sm">
+                          {course.skillName || 
+                           course.skill?.name || 
+                           course.skillId?.name ||
+                           course.skill_name ||
+                           course.skill ||
+                           'Skill not specified'}
+                        </span>
+                      </div>
+                      
+                      {course.level && (
+                        <div className="badge badge-info badge-sm mb-4">{course.level}</div>
+                      )}
+                      
+                      <div className="card-actions justify-between">
+                        <div className="flex gap-2">
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                              console.log('Full course object:', course);
+                              setSelectedCourse(course);
+                              setShowDetails(true);
+                            }}
+                          >
+                            View Details
+                          </button>
+                          <button 
+                            className="btn btn-warning btn-sm"
+                            onClick={() => handleEdit(course)}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit
+                          </button>
+                        </div>
+                        <button 
+                          className="btn btn-error btn-sm"
+                          onClick={() => handleDelete(course)}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Course Details Modal */}
+      {showDetails && selectedCourse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 rounded-t-2xl">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">{selectedCourse.title || 'Untitled Course'}</h2>
+                  <div className="flex items-center gap-4 text-blue-100">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{selectedCourse.duration || 'Duration not specified'}</span>
+                    </div>
+                    {selectedCourse.level && (
+                      <div className="badge badge-info badge-sm">{selectedCourse.level}</div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="text-white hover:text-blue-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8">
+              {/* Course Description */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Course Description</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {selectedCourse.description || 'No description available for this course.'}
+                </p>
+              </div>
+
+              {/* Related Skill */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Related Skill</h3>
+                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      {selectedCourse.skillName || 
+                       selectedCourse.skill?.name || 
+                       selectedCourse.skillId?.name ||
+                       selectedCourse.skill_name ||
+                       selectedCourse.skill ||
+                       'Skill not specified'}
+                    </p>
+                    <p className="text-sm text-gray-500">Primary skill for this course</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Course Information */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Course Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500 mb-1">Course ID</p>
+                    <p className="font-medium text-gray-800">{selectedCourse.id || selectedCourse._id || 'N/A'}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500 mb-1">Duration</p>
+                    <p className="font-medium text-gray-800">{selectedCourse.duration || 'Not specified'}</p>
+                  </div>
+                  {selectedCourse.level && (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Difficulty Level</p>
+                      <p className="font-medium text-gray-800">{selectedCourse.level}</p>
+                    </div>
+                  )}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500 mb-1">Status</p>
+                    <p className="font-medium text-green-600">Active</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    toast.success('Enrollment feature coming soon!');
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all"
+                >
+                  Enroll Now
+                </button>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit Course Modal */}
+      {showEditForm && editingCourse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 rounded-t-2xl">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Edit Course</h2>
+                  <p className="text-blue-100 mt-1">Update course information</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowEditForm(false);
+                    setEditingCourse(null);
+                  }}
+                  className="text-white hover:text-blue-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Edit Form */}
+            <div className="p-8">
+              <CourseEditForm 
+                course={editingCourse}
+                onUpdate={handleUpdate}
+                onCancel={() => {
+                  setShowEditForm(false);
+                  setEditingCourse(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <Footer />
+    </>
+  );
+};
+
+export default Courses;
