@@ -81,6 +81,18 @@ export const getUser = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
+// Get Current Logged-in User
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  // req.user is already set in protect middleware
+  const user = await User.findById(req.user._id).select("-password");
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  res.json(user);
+});
+
 // Update User
 export const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);

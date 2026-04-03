@@ -7,6 +7,7 @@ import {
   getUser,
   updateUser,
   deleteUser,
+  getCurrentUser,
 } from "../controllers/UserController.js";
 import protect from "../middleware/authmiddleware.js";
 import authorize from "../middleware/rolemiddleware.js";
@@ -70,7 +71,7 @@ router.post(
 
 // ================= USER CRUD =================
 router.get("/", protect, authorize("admin"), getUsers);
-
+router.get("/me", protect, getCurrentUser);
 router.get("/:id", protect, getUser);
 
 // Update user with optional validations
