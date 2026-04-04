@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 const API_URL = "http://localhost:5001/api/reviews";
@@ -29,7 +30,7 @@ export default function AdminReviewDashboard() {
       await fetch(`${API_URL}/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OTgwZmY3ODlmN2RjYjNiNGFlZWU0MSIsInJvbGUiOiJjbGllbnQiLCJpYXQiOjE3NzQyMzczMjAsImV4cCI6MTc3NDg0MjEyMH0.pE2J81OnvVJEwysMDhycykDWF06M60vJ0D_GCfjqS9E",
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDA4NWY1MjkzNTkwMDNlYzQwMTA5MyIsInJvbGUiOiJmcmVlbGFuY2VyIiwiaWF0IjoxNzc1MjczNDg5LCJleHAiOjE3NzU4NzgyODl9.vYrXxZqVyvb07zjRMqIuCg5JafNMfTOBN9KD6VYfmys",
         },
       });
       fetchReviews();
@@ -43,7 +44,7 @@ export default function AdminReviewDashboard() {
       <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
         Admin Review Management
       </h1>
-
+    
       {loading ? (
         <p>Loading reviews...</p>
       ) : (

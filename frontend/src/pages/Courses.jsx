@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getCourses, updateCourse, deleteCourse } from '../services/courseService.jsx';
 import { useNavigate } from 'react-router-dom';
-import NavBar from '../components/Navbar.jsx';
-import Footer from '../components/Footer.jsx';
-import CourseEditForm from '../components/CourseEditForm.jsx';
+import NavBar from '../Components/NavBar.jsx';
+import Footer from '../Components/Footer.jsx';
+import CourseEditForm from '../Components/CourseEditForm.jsx';
 import toast from 'react-hot-toast';
 
 const Courses = () => {
