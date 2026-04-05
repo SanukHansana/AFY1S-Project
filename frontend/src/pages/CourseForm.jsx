@@ -3,8 +3,8 @@ import { createCourse } from '../services/courseService.jsx';
 import { getSkills } from '../services/skillService.jsx';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import NavBar from '../components/Navbar.jsx';
-import Footer from '../components/Footer.jsx';
+import NavBar from '../Components/NavBar.jsx';
+import Footer from '../Components/Footer.jsx';
 
 const CourseForm = () => {
   const navigate = useNavigate();
