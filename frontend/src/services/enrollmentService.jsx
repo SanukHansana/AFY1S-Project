@@ -3,7 +3,7 @@ import api from '../lib/api.js';
 // Enroll in a course
 export const enrollInCourse = async (courseId) => {
   try {
-    const response = await api.post('/enrollments', { courseId });
+    const response = await api.post('/enrollments/enroll', { courseId });
     return response.data;
   } catch (error) {
     console.error('Error enrolling in course:', error);
