@@ -7,6 +7,7 @@ import NotePage from './pages/NotePage'
 import Skills from './pages/Skills.jsx'
 import Courses from './pages/Courses.jsx'
 import CourseForm from './pages/CourseForm.jsx'
+import MyCourses from './pages/MyCourses.jsx'
 import Register from './Components/RegisterPage'
 import AdminReviewDashboard from "./pages/review/AdminReviewDashboard";
 import Login from './Components/LoginPage'
@@ -23,6 +24,7 @@ function App() {
         <Route path='/skills' element={<Skills />} />
         <Route path='/courses' element={<Courses />} />
         <Route path='/courses/new' element={<CourseForm />} />
+        <Route path='/my-courses' element={<MyCourses />} />
         <Route path='/register' element={<Register />} />
         <Route path="/reviews/dashboard" element={<AdminReviewDashboard />} />
         <Route path="/login" element={<Login />} />

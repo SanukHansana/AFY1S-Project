@@ -12,7 +12,7 @@ export default function Footer() {
         { label: 'Find Talent', to: '/skills' },
         { label: 'Post a Job', to: '/post-job' },
         { label: 'Browse Courses', to: '/courses' },
-        { label: 'Create a Course', to: '/create-course' },
+        { label: 'Create a Course', to: '/courses/new' },
       ],
     },
     {

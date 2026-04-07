@@ -43,3 +43,25 @@ export const completeCourse = async (enrollmentId) => {
     throw error;
   }
 };
+
+// Unenroll from a course
+export const unenrollFromCourse = async (enrollmentId) => {
+  try {
+    const response = await api.delete(`/enrollments/${enrollmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error unenrolling from course:', error);
+    throw error;
+  }
+};
+
+// Get enrollment details
+export const getEnrollmentDetails = async (enrollmentId) => {
+  try {
+    const response = await api.get(`/enrollments/${enrollmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching enrollment details:', error);
+    throw error;
+  }
+};

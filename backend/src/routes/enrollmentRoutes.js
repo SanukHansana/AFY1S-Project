@@ -5,10 +5,14 @@ import {
   updateProgress,
   completeCourse,
   getMyCourses,
+  unenrollFromCourse,
+  getEnrollmentDetails,
   validateEnrollInCourse,
   validateUpdateProgress,
   validateCompleteCourse,
-  validateGetMyCourses
+  validateGetMyCourses,
+  validateUnenrollFromCourse,
+  validateGetEnrollmentDetails
 } from "../controllers/enrollmentController.js";
 
 const router = express.Router();
@@ -17,7 +21,7 @@ const router = express.Router();
 router.use(protect);
 
 // Enroll in a course
-router.post("/enroll", validateEnrollInCourse, enrollInCourse);
+router.post("/", validateEnrollInCourse, enrollInCourse);
 
 // Get current user's enrollments
 router.get("/my-courses", validateGetMyCourses, getMyCourses);
@@ -27,5 +31,11 @@ router.put("/:enrollmentId/progress", validateUpdateProgress, updateProgress);
 
 // Complete a course
 router.put("/:enrollmentId/complete", validateCompleteCourse, completeCourse);
+
+// Get enrollment details
+router.get("/:enrollmentId", validateGetEnrollmentDetails, getEnrollmentDetails);
+
+// Unenroll from a course
+router.delete("/:enrollmentId", validateUnenrollFromCourse, unenrollFromCourse);
 
 export default router;
