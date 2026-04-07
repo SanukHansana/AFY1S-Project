@@ -1,0 +1,23 @@
+{
+  "name": "afy1s-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "test-enrollment-summary.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SanukHansana/AFY1S-Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SanukHansana/AFY1S-Project/issues"
+  },
+  "homepage": "https://github.com/SanukHansana/AFY1S-Project#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.5.2"
+  }
+}
