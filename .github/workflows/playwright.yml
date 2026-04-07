@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
 
       - name: Install backend dependencies
         working-directory: ./backend
@@ -36,7 +36,7 @@ jobs:
 
       - name: Start backend
         working-directory: ./backend
-        run: npm start &
+        run: npm start > backend.log 2>&1 &
         env:
           PORT: 5001
           MONGO_URI: ${{ secrets.MONGO_URI }}
@@ -48,8 +48,17 @@ jobs:
           EXCHANGE_RATE_API_KEY: ${{ secrets.EXCHANGE_RATE_API_KEY }}
           EXCHANGE_RATE_CACHE_MINUTES: 30
 
+      - name: Show backend log before wait
+        working-directory: ./backend
+        run: cat backend.log || true
+
       - name: Wait for backend
-        run: npx wait-on http://127.0.0.1:5001
+        run: npx wait-on --timeout 60000 http://127.0.0.1:5001
+
+      - name: Show backend log after wait
+        if: always()
+        working-directory: ./backend
+        run: cat backend.log || true
 
       - name: Start frontend
         working-directory: ./frontend
@@ -58,7 +67,7 @@ jobs:
           VITE_API_URL: http://127.0.0.1:5001
 
       - name: Wait for frontend
-        run: npx wait-on http://127.0.0.1:5173
+        run: npx wait-on --timeout 60000 http://127.0.0.1:5173
 
       - name: Run Playwright tests
         run: npx playwright test
