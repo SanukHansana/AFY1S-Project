@@ -1,16 +1,39 @@
-
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = "http://localhost:5001/api/reviews";
 
 export default function AdminReviewDashboard() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const navigate = useNavigate();
+
+  const getToken = () => localStorage.getItem("token");
+
+  // check admin from JWT
+  const checkAdmin = () => {
+    const token = getToken();
+    if (!token) return false;
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.role === "admin";
+    } catch {
+      return false;
+    }
+  };
 
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
       const data = await res.json();
       setReviews(data.reviews || data);
     } catch (err) {
@@ -20,31 +43,26 @@ export default function AdminReviewDashboard() {
   };
 
   useEffect(() => {
+    const admin = checkAdmin();
+    setIsAdmin(admin);
+
+    if (!admin) {
+      navigate("/"); // redirect if not admin
+      return;
+    }
+
     fetchReviews();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this review?")) return;
-
-    try {
-      await fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDA4NWY1MjkzNTkwMDNlYzQwMTA5MyIsInJvbGUiOiJmcmVlbGFuY2VyIiwiaWF0IjoxNzc1MjczNDg5LCJleHAiOjE3NzU4NzgyODl9.vYrXxZqVyvb07zjRMqIuCg5JafNMfTOBN9KD6VYfmys",
-        },
-      });
-      fetchReviews();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  // hide page completely if not admin
+  if (!isAdmin) return null;
 
   return (
     <div style={{ padding: "20px" }}>
       <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
         Admin Review Management
       </h1>
-    
+
       {loading ? (
         <p>Loading reviews...</p>
       ) : (
@@ -68,15 +86,17 @@ export default function AdminReviewDashboard() {
                 <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
                   {review.title}
                 </h2>
+
                 <p style={{ fontSize: "14px", color: "#555" }}>
                   {review.comment}
                 </p>
+
                 <p style={{ fontSize: "14px" }}>⭐ {review.rating}</p>
+
                 <p style={{ fontSize: "12px", color: "#888" }}>
                   User: {review.user?.name || review.user}
                 </p>
 
-                {/* ✅ Show Course OR Job */}
                 {review.course && (
                   <p style={{ fontSize: "13px", color: "#2c3e50" }}>
                     🎓 Course: {review.course?.title}
@@ -110,4 +130,21 @@ export default function AdminReviewDashboard() {
       )}
     </div>
   );
+
+  async function handleDelete(id) {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      fetchReviews();
+    } catch (err) {
+      console.error(err);
+    }
+  }
 }
