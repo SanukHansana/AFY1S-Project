@@ -53,7 +53,7 @@ jobs:
         run: cat backend.log || true
 
       - name: Wait for backend
-        run: npx wait-on --timeout 60000 http://127.0.0.1:5001
+        run: npx wait-on --timeout 60000 http://127.0.0.1:5001/api
 
       - name: Show backend log after wait
         if: always()
