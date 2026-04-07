@@ -79,6 +79,24 @@ export const validateGetMyCourses = [
   handleValidationErrors
 ];
 
+// Validation rules for unenrolling from a course
+export const validateUnenrollFromCourse = [
+  param('enrollmentId')
+    .isMongoId()
+    .withMessage('Invalid enrollment ID format'),
+  
+  handleValidationErrors
+];
+
+// Validation rules for getting enrollment details
+export const validateGetEnrollmentDetails = [
+  param('enrollmentId')
+    .isMongoId()
+    .withMessage('Invalid enrollment ID format'),
+  
+  handleValidationErrors
+];
+
 // Enroll in Course
 export const enrollInCourse = async (req, res) => {
   try {
@@ -232,8 +250,14 @@ export const getMyCourses = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const enrollments = await Enrollment.find(query)
-      .populate('courseId', 'title description duration')
-      .populate('courseId.skillId', 'name level category')
+      .populate({
+        path: 'courseId',
+        select: 'title description duration',
+        populate: {
+          path: 'skillId',
+          select: 'name level category'
+        }
+      })
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -253,6 +277,61 @@ export const getMyCourses = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching enrollments:", error);
+    sendResponse(res, 500, false, "Internal server error", error.message);
+  }
+};
+
+// Unenroll from Course
+export const unenrollFromCourse = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const userId = req.user.id; // Get user from auth middleware
+
+    // Find enrollment
+    const enrollment = await Enrollment.findById(enrollmentId);
+    if (!enrollment) {
+      return sendResponse(res, 404, false, "Enrollment not found");
+    }
+
+    // Business rule: Only enrolled user can unenroll
+    if (enrollment.userId.toString() !== userId) {
+      return sendResponse(res, 403, false, "You can only unenroll from your own enrolled course");
+    }
+
+    // Delete the enrollment
+    await Enrollment.findByIdAndDelete(enrollmentId);
+
+    sendResponse(res, 200, true, "Successfully unenrolled from course");
+  } catch (error) {
+    console.error("Error unenrolling from course:", error);
+    sendResponse(res, 500, false, "Internal server error", error.message);
+  }
+};
+
+// Get Enrollment Details
+export const getEnrollmentDetails = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const userId = req.user.id; // Get user from auth middleware
+
+    // Find enrollment with populated course details
+    const enrollment = await Enrollment.findById(enrollmentId)
+      .populate('courseId', 'title description duration')
+      .populate('courseId.skillId', 'name level category')
+      .populate('userId', 'name email');
+
+    if (!enrollment) {
+      return sendResponse(res, 404, false, "Enrollment not found");
+    }
+
+    // Business rule: Only enrolled user can view their own enrollment details
+    if (enrollment.userId.toString() !== userId) {
+      return sendResponse(res, 403, false, "You can only view your own enrollment details");
+    }
+
+    sendResponse(res, 200, true, "Enrollment details retrieved successfully", enrollment);
+  } catch (error) {
+    console.error("Error fetching enrollment details:", error);
     sendResponse(res, 500, false, "Internal server error", error.message);
   }
 };
