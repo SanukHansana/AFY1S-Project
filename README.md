@@ -14,5 +14,10 @@ EXCHANGE_RATE_API_KEY=
 EXCHANGE_RATE_CACHE_MINUTES=
 
 ```
-
+```
+    User Account(Admin)
+sanuk
+sanuk@gmail.com
+qwe123QWE!@#
+```
 
