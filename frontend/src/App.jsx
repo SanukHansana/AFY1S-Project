@@ -14,6 +14,13 @@ import Login from './Components/LoginPage'
 import PrivateRoute from "./Components/PrivateRoute";
 
 
+// job page imports
+import JobsPage from './pages/JobsPage'
+import JobDetailsPage from './pages/JobDetailsPage'
+import CreateJobPage from './pages/CreateJobPage'
+import MyJobsPage from './pages/MyJobsPage'
+
+
 function App() {
   return (
     <div>
@@ -28,6 +35,33 @@ function App() {
         <Route path='/register' element={<Register />} />
         <Route path="/reviews/dashboard" element={<AdminReviewDashboard />} />
         <Route path="/login" element={<Login />} />
+
+
+
+        {/* job routes */}
+        <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/jobs/:id" element={<JobDetailsPage />} />
+
+        <Route
+          path="/jobs/create"
+          element={
+            <PrivateRoute role="client">
+              <CreateJobPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/my-jobs"
+          element={
+            <PrivateRoute>
+              <MyJobsPage />
+            </PrivateRoute>
+          }
+        />
+
+
+
 
         <Route
           path="/admin"

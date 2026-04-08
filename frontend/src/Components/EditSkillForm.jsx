@@ -1,3 +1,4 @@
+//frontend/src/Components/EditSkillForm.jsx
 import React, { useState, useEffect } from 'react';
 import { updateSkill } from '../services/skillService.jsx';
 import toast from 'react-hot-toast';

@@ -1,3 +1,4 @@
+//frontend/src/services/skillService.jsx
 import api from '../lib/api.js';
 
 // Get all skills

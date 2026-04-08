@@ -1,3 +1,4 @@
+//frontend/src/Components/SkillForm.jsx
 import React, { useState } from 'react';
 import { createSkill } from '../services/skillService.jsx';
 import toast from 'react-hot-toast';

@@ -1,3 +1,4 @@
+//frontend/src/pages/CourseForm.jsx
 import React, { useState, useEffect } from 'react';
 import { createCourse } from '../services/courseService.jsx';
 import { getSkills } from '../services/skillService.jsx';
