@@ -263,7 +263,7 @@ function HomePage(){
                 <h2 style={{...PF,fontSize:'2.8rem',fontWeight:900,color:'white',marginBottom:14}}>Ready to get started?</h2>
                 <p style={{color:'rgba(255,255,255,.85)',fontSize:17,marginBottom:36,maxWidth:460,margin:'0 auto 36px'}}>Join thousands of freelancers and clients building the future of work together.</p>
                 <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
-                  <Link to="/post-job" style={{background:'white',color:'#6d1fa0',borderRadius:14,padding:'15px 32px',fontWeight:700,fontSize:15,textDecoration:'none',boxShadow:'0 8px 24px rgba(0,0,0,.15)',display:'inline-block'}}>Post a Job Free</Link>
+                  <Link to="/jobs/create" style={{background:'white',color:'#6d1fa0',borderRadius:14,padding:'15px 32px',fontWeight:700,fontSize:15,textDecoration:'none',boxShadow:'0 8px 24px rgba(0,0,0,.15)',display:'inline-block'}}>Post a Job Free</Link>
                   <Link to="/courses" style={{background:'rgba(255,255,255,.15)',color:'white',border:'1.5px solid rgba(255,255,255,.4)',borderRadius:14,padding:'15px 32px',fontWeight:700,fontSize:15,textDecoration:'none',backdropFilter:'blur(10px)',display:'inline-block'}}>Browse Courses</Link>
                 </div>
               </div>

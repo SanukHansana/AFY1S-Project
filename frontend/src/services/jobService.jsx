@@ -14,7 +14,11 @@ export const getJobs = async (params = {}) => {
   const query = new URLSearchParams();
 
   Object.keys(params).forEach((key) => {
-    if (params[key] !== "" && params[key] !== undefined && params[key] !== null) {
+    if (
+      params[key] !== "" &&
+      params[key] !== undefined &&
+      params[key] !== null
+    ) {
       query.append(key, params[key]);
     }
   });
@@ -55,6 +59,22 @@ export const createJob = async (jobData) => {
 
   if (!res.ok) {
     throw new Error(data.message || "Failed to create job");
+  }
+
+  return data;
+};
+
+export const updateJob = async (id, jobData) => {
+  const res = await fetch(`${API_BASE}/jobs/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(jobData),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to update job");
   }
 
   return data;
