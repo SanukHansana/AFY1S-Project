@@ -1,4 +1,5 @@
 //frontend/src/pages/JobDetailsPage.jsx
+import JobReviewSection from "../Components/reviews/JobReviewSection";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import NavBar from "../Components/NavBar";
@@ -15,6 +16,7 @@ export default function JobDetailsPage() {
 
   const savedUser = localStorage.getItem("user");
   const user = savedUser ? JSON.parse(savedUser) : null;
+  const userToken = localStorage.getItem("token");
 
   const [job, setJob] = useState(null);
   const [currency, setCurrency] = useState("LKR");
@@ -291,12 +293,19 @@ export default function JobDetailsPage() {
           )}
 
           {job.freelancerId && (
-            <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
-              <p className="font-bold text-green-700">Assigned Freelancer</p>
-              <p className="text-green-700">
-                {job.freelancerId.name} ({job.freelancerId.email})
-              </p>
-            </div>
+            <>
+              <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
+                <p className="font-bold text-green-700">Assigned Freelancer</p>
+                <p className="text-green-700">
+                  {job.freelancerId.name} ({job.freelancerId.email})
+                </p>
+              </div>
+
+              <JobReviewSection
+                jobId={job._id}
+                token={userToken}
+              />
+            </>
           )}
         </div>
       </div>
