@@ -1,3 +1,4 @@
+//frontend/tailwind.config.js
 import daisyui from "daisyui";
 
 /** @type {import('tailwindcss').Config} */

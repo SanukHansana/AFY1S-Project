@@ -10,7 +10,7 @@ export default function Footer() {
       title: 'Platform',
       links: [
         { label: 'Find Talent', to: '/skills' },
-        { label: 'Post a Job', to: '/post-job' },
+        { label: 'Post a Job', to: '/jobs/create' },
         { label: 'Browse Courses', to: '/courses' },
         { label: 'Create a Course', to: '/courses/new' },
       ],

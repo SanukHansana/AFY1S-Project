@@ -1,3 +1,4 @@
+//frontend/src/pages/Skills.jsx
 import React, { useState, useEffect } from 'react';
 import { getSkills, deleteSkill } from '../services/skillService.jsx';
 import SkillForm from '../Components/SkillForm.jsx';

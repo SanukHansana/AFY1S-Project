@@ -1,8 +1,9 @@
 
 
 
-
-PORT=5001
+```
+    env
+PORT=5001  
 MONGO_URI=
 SENDGRID_API_KEY=
 JWT_SECRET=
@@ -12,5 +13,11 @@ HUGGINGFACE_MODEL=
 EXCHANGE_RATE_API_KEY=
 EXCHANGE_RATE_CACHE_MINUTES=
 
-
+```
+```
+    User Account(Admin)
+sanuk
+sanuk@gmail.com
+qwe123QWE!@#
+```
 
