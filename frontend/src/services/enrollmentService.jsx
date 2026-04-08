@@ -1,3 +1,4 @@
+//frontend/src/services/enrollmentService.jsx
 import api from '../lib/api.js';
 
 // Enroll in a course

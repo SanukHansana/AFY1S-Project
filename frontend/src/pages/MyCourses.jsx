@@ -1,3 +1,4 @@
+//frontend/src/pages/MyCourses.jsx
 import React, { useState, useEffect } from 'react';
 import { getMyCourses, updateProgress, unenrollFromCourse } from '../services/enrollmentService.jsx';
 import { useNavigate } from 'react-router-dom';

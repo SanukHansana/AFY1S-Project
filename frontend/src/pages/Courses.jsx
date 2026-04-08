@@ -1,3 +1,4 @@
+//frontend/src/pages/Courses.jsx
 import React, { useState, useEffect } from 'react';
 import { getCourses, updateCourse, deleteCourse } from '../services/courseService.jsx';
 import { enrollInCourse } from '../services/enrollmentService.jsx';

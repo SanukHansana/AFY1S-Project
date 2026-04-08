@@ -1,3 +1,4 @@
+//frontend/src/Components/CourseEditForm.jsx
 import React, { useState, useEffect } from 'react';
 import { getSkills } from '../services/skillService.jsx';
 import toast from 'react-hot-toast';

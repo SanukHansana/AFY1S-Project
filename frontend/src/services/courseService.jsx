@@ -1,3 +1,4 @@
+//frontend/src/services/courseService.jsx
 import api from '../lib/api.js';
 
 // Get all courses
