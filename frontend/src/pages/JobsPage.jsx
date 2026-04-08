@@ -1,4 +1,6 @@
+//frontend/src/pages/JobsPage.jsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import JobCard from "../Components/JobCard";
 import JobFilters from "../Components/JobFilters";
 import { getJobs } from "../services/jobService";
@@ -21,6 +23,10 @@ export default function JobsPage() {
   const [message, setMessage] = useState("");
   const [currency, setCurrency] = useState("LKR");
   const [page, setPage] = useState(1);
+
+  const savedUser = localStorage.getItem("user");
+  const user = savedUser ? JSON.parse(savedUser) : null;
+  const canCreateJob = user?.role === "client" || user?.role === "admin";
 
   const fetchAllJobs = async (
     customPage = page,
@@ -84,16 +90,27 @@ export default function JobsPage() {
 
       <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-white px-4 py-10">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 text-center">
-            <span className="rounded-full border border-pink-200 bg-pink-50 px-4 py-1 text-sm font-semibold text-pink-700">
-              Job Marketplace
-            </span>
-            <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-gray-900">
-              Browse Jobs
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Find opportunities based on your skills and preferred work style
-            </p>
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-center md:text-left">
+              <span className="rounded-full border border-pink-200 bg-pink-50 px-4 py-1 text-sm font-semibold text-pink-700">
+                Job Marketplace
+              </span>
+              <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-gray-900">
+                Browse Jobs
+              </h1>
+              <p className="mt-2 text-gray-600">
+                Find opportunities based on your skills and preferred work style
+              </p>
+            </div>
+
+            {canCreateJob && (
+              <Link
+                to="/jobs/create"
+                className="inline-block rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow hover:opacity-95"
+              >
+                Create Job
+              </Link>
+            )}
           </div>
 
           <JobFilters
