@@ -1,7 +1,8 @@
 //frontend/src/Components/SkillForm.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createSkill } from '../services/skillService.jsx';
 import toast from 'react-hot-toast';
+import { checkAdmin } from '../utils/authHelpers.js';
 
 const SkillForm = ({ onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,12 @@ const SkillForm = ({ onSuccess, onCancel }) => {
     description: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const adminStatus = checkAdmin();
+    setIsAdmin(adminStatus);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,6 +29,7 @@ const SkillForm = ({ onSuccess, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     setLoading(true);
 
     try {
