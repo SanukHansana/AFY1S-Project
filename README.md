@@ -21,3 +21,18 @@ sanuk@gmail.com
 qwe123QWE!@#
 ```
 
+```
+    User Account(Client)
+nimal
+nimal@gmail.com
+qwe123QWE!@#
+
+```
+
+```
+    User Account(Freelancer)
+ruwan
+ruwan@gmail.com
+qwe123QWE!@#
+
+```
