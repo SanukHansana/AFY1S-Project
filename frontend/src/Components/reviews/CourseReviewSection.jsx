@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 const API_URL = "http://localhost:5001/api/reviews";
 
-export default function CourseReviewSection({ courseId, token }) {
+export default function CourseReviewSection({ courseId, token = null }) {
   const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({
     title: "",
