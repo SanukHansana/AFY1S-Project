@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import NavBar from '../Components/NavBar.jsx';
 import Footer from '../Components/Footer.jsx';
 import CourseEditForm from '../Components/CourseEditForm.jsx';
+import CourseReviewSection from '../Components/reviews/CourseReviewSection.jsx';
 import toast from 'react-hot-toast';
 import { checkAdmin } from '../utils/authHelpers.js';
 
@@ -467,6 +468,14 @@ const Courses = () => {
                 >
                   Close
                 </button>
+              </div>
+
+              {/* Course Reviews Section */}
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <CourseReviewSection 
+                  courseId={selectedCourse._id} 
+                  token={localStorage.getItem('token')} 
+                />
               </div>
             </div>
           </div>
