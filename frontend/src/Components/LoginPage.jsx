@@ -1,4 +1,3 @@
-//frontend/src/Components/LoginPage.jsx
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -93,7 +92,7 @@ export default function Login() {
           if (data.user.role === "admin") {
             navigate("/admin"); // admin dashboard route
           } else {
-            navigate("/dashboard"); // normal user route
+            navigate("/"); // normal user route
           }
         }, 800);
       
