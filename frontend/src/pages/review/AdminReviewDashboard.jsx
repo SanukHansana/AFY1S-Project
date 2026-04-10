@@ -1,6 +1,8 @@
-//frontend/src/pages/review/AdminReviewDashboard.jsx
+// frontend/src/pages/review/AdminReviewDashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import NavBar from "../../Components/NavBar.jsx";
+import Footer from "../../Components/Footer.jsx";
 
 const API_URL = "http://localhost:5001/api/reviews";
 
@@ -8,7 +10,6 @@ export default function AdminReviewDashboard() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-
   const navigate = useNavigate();
 
   const getToken = () => localStorage.getItem("token");
@@ -28,6 +29,7 @@ export default function AdminReviewDashboard() {
 
   const fetchReviews = async () => {
     setLoading(true);
+
     try {
       const res = await fetch(API_URL, {
         headers: {
@@ -40,6 +42,7 @@ export default function AdminReviewDashboard() {
     } catch (err) {
       console.error(err);
     }
+
     setLoading(false);
   };
 
@@ -48,89 +51,83 @@ export default function AdminReviewDashboard() {
     setIsAdmin(admin);
 
     if (!admin) {
-      navigate("/"); // redirect if not admin
+      navigate("/");
       return;
     }
 
     fetchReviews();
   }, []);
 
-  // hide page completely if not admin
+  // hide page if not admin
   if (!isAdmin) return null;
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
-        Admin Review Management
-      </h1>
+  <>
+    <NavBar />
 
-      {loading ? (
-        <p>Loading reviews...</p>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-            gap: "15px",
-          }}
-        >
-          {reviews.map((review) => (
-            <div key={review._id}>
+    <div className="min-h-screen bg-[#f8f5ff] py-10">
+      
+      <div className="max-w-6xl mx-auto px-6">
+
+        {/* Title */}
+        <h1 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-purple-700 via-pink-600 to-orange-500 bg-clip-text text-transparent">
+          Admin Review Management
+        </h1>
+
+        {loading ? (
+          <p className="text-gray-500">Loading reviews...</p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((review) => (
               <div
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: "10px",
-                  padding: "15px",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                }}
+                key={review._id}
+                className="bg-white rounded-xl border border-purple-100 shadow-sm p-5 hover:shadow-lg transition"
               >
-                <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
                   {review.title}
                 </h2>
 
-                <p style={{ fontSize: "14px", color: "#555" }}>
+                <p className="text-sm text-gray-600 mb-3">
                   {review.comment}
                 </p>
 
-                <p style={{ fontSize: "14px" }}>⭐ {review.rating}</p>
+                <p className="text-sm font-medium text-yellow-500 mb-2">
+                  ⭐ {review.rating}
+                </p>
 
-                <p style={{ fontSize: "12px", color: "#888" }}>
+                <p className="text-xs text-gray-400 mb-2">
                   User: {review.user?.name || review.user}
                 </p>
 
                 {review.course && (
-                  <p style={{ fontSize: "13px", color: "#2c3e50" }}>
+                  <p className="text-sm text-purple-700 mb-1">
                     🎓 Course: {review.course?.title}
                   </p>
                 )}
 
                 {review.job && (
-                  <p style={{ fontSize: "13px", color: "#2c3e50" }}>
+                  <p className="text-sm text-purple-700 mb-3">
                     💼 Job: {review.job?.title}
                   </p>
                 )}
 
                 <button
                   onClick={() => handleDelete(review._id)}
-                  style={{
-                    marginTop: "10px",
-                    padding: "8px 12px",
-                    backgroundColor: "#e74c3c",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                  }}
+                  className="mt-3 w-full py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-red-500 to-pink-600 hover:opacity-90 transition"
                 >
                   Delete Review
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+
+      </div>
     </div>
-  );
+
+    <Footer />
+  </>
+);
 
   async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this review?")) return;
