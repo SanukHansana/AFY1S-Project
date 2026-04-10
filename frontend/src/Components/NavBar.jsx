@@ -1,12 +1,11 @@
 // frontend/src/Components/NavBar.jsx
 import React, { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-
+import { Link, useLocation, useNavigate } from "react-router-dom";
 function NavBar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
-
+  const navigate = useNavigate();
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
     window.addEventListener('scroll', onScroll)
@@ -21,6 +20,22 @@ function NavBar() {
   ]
 
   const isActive = (to) => location.pathname === to
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+      useEffect(() => {
+        const token = localStorage.getItem("token");
+        setIsLoggedIn(!!token);
+      }, []);
+
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  setIsLoggedIn(false);
+
+  navigate("/");
+};
 
   return (
     <>
@@ -158,8 +173,16 @@ function NavBar() {
 
           {/* Desktop actions */}
           <div className="sc-nav-actions">
-            <Link to="/login" className="sc-btn-ghost">Log In</Link>
-            <Link to="/register" className="sc-btn-primary">Get Started</Link>
+            {isLoggedIn ? (
+              <button onClick={handleLogout} className="sc-btn-ghost">
+                Logout
+              </button>
+            ) : (
+              <>
+                <Link to="/login" className="sc-btn-ghost">Log In</Link>
+                <Link to="/register" className="sc-btn-primary">Get Started</Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -181,7 +204,21 @@ function NavBar() {
           ))}
           <div className="sc-mobile-divider" />
           <div className="sc-mobile-actions">
-            <Link to="/login" className="sc-btn-ghost" style={{ textAlign: 'center' }} onClick={() => setMobileOpen(false)}>Log In</Link>
+           {isLoggedIn ? (
+  <button
+    onClick={handleLogout}
+    className="bg-red-500 text-white px-4 py-2 rounded-lg"
+  >
+    Logout
+  </button>
+) : (
+  <Link
+    to="/login"
+    className="bg-green-500 text-white px-4 py-2 rounded-lg"
+  >
+    Login
+  </Link>
+)}
             <Link to="/register" className="sc-btn-primary" style={{ textAlign: 'center', justifyContent: 'center' }} onClick={() => setMobileOpen(false)}>Get Started</Link>
           </div>
         </div>

@@ -1,6 +1,7 @@
 //frontend/src/pages/MyCourses.jsx
 import React, { useState, useEffect } from 'react';
 import { getMyCourses, updateProgress, unenrollFromCourse } from '../services/enrollmentService.jsx';
+import { generateCertificate } from '../services/certificateService.jsx';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../Components/NavBar.jsx';
 import Footer from '../Components/Footer.jsx';
@@ -32,6 +33,18 @@ const MyCourses = () => {
 
   const handleProgressUpdate = async (enrollmentId, newProgress) => {
     try {
+      // Get current progress to validate forward-only movement
+      const currentEnrollment = enrolledCourses.find(enrollment => 
+        (enrollment.id || enrollment._id) === enrollmentId
+      );
+      const currentProgress = currentEnrollment?.progress || 0;
+      
+      // Prevent backward progress
+      if (newProgress < currentProgress) {
+        toast.error('Progress can only be increased, not decreased');
+        return;
+      }
+      
       setUpdatingProgress(enrollmentId);
       console.log(`Updating progress for enrollment ${enrollmentId} to ${newProgress}%`);
       
@@ -50,6 +63,10 @@ const MyCourses = () => {
       
       // Auto-update status if progress is 100%
       if (newProgress === 100) {
+        const completedEnrollment = enrolledCourses.find(enrollment => 
+          (enrollment.id || enrollment._id) === enrollmentId
+        );
+        
         setEnrolledCourses(prev => 
           prev.map(enrollment => 
             (enrollment.id || enrollment._id) === enrollmentId 
@@ -57,13 +74,46 @@ const MyCourses = () => {
               : enrollment
           )
         );
-        toast.success('🎉 Course completed!');
+        
+        toast.success('Course completed!');
+        
+        // Generate certificate
+        try {
+          // Get user data from localStorage to include in certificate
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          const certificateData = {
+            ...completedEnrollment,
+            user: userData
+          };
+          await generateCertificate(certificateData);
+          toast.success('Certificate opened! Use browser print to save as PDF');
+        } catch (error) {
+          console.error('Error generating certificate:', error);
+          toast.error(error.message || 'Failed to generate certificate');
+        }
       }
     } catch (error) {
       console.error('Error updating progress:', error);
       toast.error('Failed to update progress');
     } finally {
       setUpdatingProgress(null);
+    }
+  };
+
+  const handleDownloadCertificate = async (enrollment) => {
+    try {
+      toast.loading('Opening certificate preview...', { id: 'certificate' });
+      // Get user data from localStorage to include in certificate
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const certificateData = {
+        ...enrollment,
+        user: userData
+      };
+      await generateCertificate(certificateData);
+      toast.success('Certificate opened! Use browser print to save as PDF', { id: 'certificate' });
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+      toast.error(error.message || 'Failed to generate certificate', { id: 'certificate' });
     }
   };
 
@@ -242,9 +292,19 @@ const MyCourses = () => {
                         ></div>
                       </div>
                       
-                      {/* Progress Slider */}
+                      {/* Progress Controls */}
                       <div className="space-y-2">
-                        <label className="text-xs text-gray-600 font-medium">Update Progress:</label>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-600 font-medium">Update Progress:</label>
+                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                            <span className="text-xs">Forward Only</span>
+                          </div>
+                        </div>
+                        
+                        {/* Slider Control - Forward Only */}
                         <div className="flex items-center gap-3">
                           <input
                             type="range"
@@ -254,9 +314,50 @@ const MyCourses = () => {
                             value={enrollment.progress || 0}
                             onChange={(e) => {
                               const newProgress = parseInt(e.target.value);
+                              const currentProgress = enrollment.progress || 0;
                               const enrollmentId = enrollment.id || enrollment._id;
                               
-                              // Update UI immediately for better UX
+                              // Only allow forward progress
+                              if (newProgress >= currentProgress) {
+                                // Update UI immediately for better UX
+                                setEnrolledCourses(prev => 
+                                  prev.map(enr => 
+                                    (enr.id || enr._id) === enrollmentId 
+                                      ? { ...enr, progress: newProgress }
+                                      : enr
+                                  )
+                                );
+                                
+                                // Call API to update
+                                handleProgressUpdate(enrollmentId, newProgress);
+                              } else {
+                                // Show error for backward progress attempt
+                                toast.error('Progress can only be increased, not decreased');
+                                // Reset slider to current position
+                                e.target.value = currentProgress;
+                              }
+                            }}
+                            disabled={updatingProgress === (enrollment.id || enrollment._id) || (enrollment.progress || 0) >= 100}
+                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                            style={{
+                              background: `linear-gradient(to right, ${getProgressColor(enrollment.progress || 0)} 0%, ${getProgressColor(enrollment.progress || 0)} ${enrollment.progress || 0}%, #e5e7eb ${enrollment.progress || 0}%, #e5e7eb 100%)`
+                            }}
+                            title="Progress can only be increased, not decreased"
+                          />
+                          <span className="text-sm font-bold text-gray-900 min-w-[3rem] text-right">
+                            {enrollment.progress || 0}%
+                          </span>
+                        </div>
+                        
+                        {/* Quick Update Buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const currentProgress = enrollment.progress || 0;
+                              const newProgress = Math.min(currentProgress + 10, 100);
+                              const enrollmentId = enrollment.id || enrollment._id;
+                              
+                              // Update UI immediately
                               setEnrolledCourses(prev => 
                                 prev.map(enr => 
                                   (enr.id || enr._id) === enrollmentId 
@@ -268,16 +369,71 @@ const MyCourses = () => {
                               // Call API to update
                               handleProgressUpdate(enrollmentId, newProgress);
                             }}
-                            disabled={updatingProgress === (enrollment.id || enrollment._id)}
-                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                            style={{
-                              background: `linear-gradient(to right, ${getProgressColor(enrollment.progress || 0)} 0%, ${getProgressColor(enrollment.progress || 0)} ${enrollment.progress || 0}%, #e5e7eb ${enrollment.progress || 0}%, #e5e7eb 100%)`
+                            disabled={updatingProgress === (enrollment.id || enrollment._id) || (enrollment.progress || 0) >= 100}
+                            className="btn btn-success btn-xs"
+                            title="Increase progress by 10%"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+                            </svg>
+                            +10%
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              const currentProgress = enrollment.progress || 0;
+                              const newProgress = Math.min(currentProgress + 25, 100);
+                              const enrollmentId = enrollment.id || enrollment._id;
+                              
+                              // Update UI immediately
+                              setEnrolledCourses(prev => 
+                                prev.map(enr => 
+                                  (enr.id || enr._id) === enrollmentId 
+                                    ? { ...enr, progress: newProgress }
+                                    : enr
+                                )
+                              );
+                              
+                              // Call API to update
+                              handleProgressUpdate(enrollmentId, newProgress);
                             }}
-                          />
-                          <span className="text-sm font-bold text-gray-900 min-w-[3rem] text-right">
-                            {enrollment.progress || 0}%
-                          </span>
+                            disabled={updatingProgress === (enrollment.id || enrollment._id) || (enrollment.progress || 0) >= 100}
+                            className="btn btn-primary btn-xs"
+                            title="Increase progress by 25%"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+                            </svg>
+                            +25%
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              const enrollmentId = enrollment.id || enrollment._id;
+                              
+                              // Update UI immediately
+                              setEnrolledCourses(prev => 
+                                prev.map(enr => 
+                                  (enr.id || enr._id) === enrollmentId 
+                                    ? { ...enr, progress: 100 }
+                                    : enr
+                                )
+                              );
+                              
+                              // Call API to update
+                              handleProgressUpdate(enrollmentId, 100);
+                            }}
+                            disabled={updatingProgress === (enrollment.id || enrollment._id) || (enrollment.progress || 0) >= 100}
+                            className="btn btn-warning btn-xs"
+                            title="Mark as complete"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Complete
+                          </button>
                         </div>
+                        
                         {updatingProgress === (enrollment.id || enrollment._id) && (
                           <div className="flex items-center gap-2 text-xs text-blue-600">
                             <div className="loading loading-spinner loading-xs"></div>
@@ -307,24 +463,29 @@ const MyCourses = () => {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="card-actions justify-between">
+                    <div className="card-actions justify-between gap-2">
                       <button 
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-primary btn-sm flex-1"
                         onClick={() => {
-                          const courseId = enrollment.course?.id || 
-                                         enrollment.courseId?.id || 
-                                         enrollment.courseId?._id || 
-                                         enrollment.courseId ||
-                                         enrollment.id;
-                          if (courseId) {
-                            navigate(`/courses/${courseId}`);
-                          } else {
-                            toast.error('Course ID not found');
-                          }
+                          navigate('/courses');
                         }}
                       >
                         Continue Learning
                       </button>
+                      
+                      {/* Certificate Download Button - Only for completed courses */}
+                      {(enrollment.progress === 100 || enrollment.status === 'completed') && (
+                        <button 
+                          className="btn btn-success btn-sm"
+                          onClick={() => handleDownloadCertificate(enrollment)}
+                          title="Download Certificate"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Certificate
+                        </button>
+                      )}
                       
                       <button 
                         className="btn btn-error btn-sm"

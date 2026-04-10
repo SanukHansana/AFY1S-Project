@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import NavBar from '../Components/NavBar.jsx';
 import Footer from '../Components/Footer.jsx';
+import { checkAdmin } from '../utils/authHelpers.js';
 
 const CourseForm = () => {
   const navigate = useNavigate();
@@ -18,6 +19,18 @@ const CourseForm = () => {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(false);
   const [skillsLoading, setSkillsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const adminStatus = checkAdmin();
+    setIsAdmin(adminStatus);
+    
+    if (!adminStatus) {
+      toast.error('Only admins can create courses');
+      navigate('/courses');
+      return;
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchSkills = async () => {
@@ -45,6 +58,12 @@ const CourseForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check admin permission
+    if (!isAdmin) {
+      toast.error('Only admins can create courses');
+      return;
+    }
     
     if (!formData.title || !formData.description || !formData.skillId || !formData.duration) {
       toast.error('Please fill in all fields');
