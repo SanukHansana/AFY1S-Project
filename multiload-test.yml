@@ -1,0 +1,24 @@
+config:
+  target: "http://localhost:5001"
+  phases:
+    - duration: 60      # Stretch the time out
+      arrivalRate: 5    # Lower the arrival rate to 5 users/sec
+      rampTo: 15        # Gradually increase the load
+      name: Warm up phase
+
+scenarios:
+  - name: "Realistic Review Browsing"
+    flow:
+      - get:
+          url: "/api/reviews"
+      - think: 2         # User reads reviews for 2 seconds
+      
+      - get:
+          url: "/api/courses"
+      - think: 1
+      
+      - loop:
+          - get:
+              url: "/api/reviews"
+          - think: 1     # IMPORTANT: Wait 1s between each loop iteration
+        count: 5         # Reduced from 50 to 5
