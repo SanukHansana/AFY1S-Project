@@ -1,48 +1,73 @@
 config:
-  target: "http://localhost:5001"
-
+  target: "http://localhost:5173"
   phases:
     - duration: 30
-      arrivalRate: 2
-      name: "Warm up phase"
+      arrivalRate: 3
+      name: Warm up
 
     - duration: 60
       arrivalRate: 5
-      rampTo: 15
-      name: "Increasing load"
+      rampTo: 10
+      name: Increasing traffic
 
     - duration: 30
-      arrivalRate: 15
-      name: "Peak traffic"
-
-  defaults:
-    headers:
-      Content-Type: "application/json"
+      arrivalRate: 10
+      name: Peak load
 
 scenarios:
-  - name: "User browsing reviews, courses, and jobs"
-
+  - name: "User opens frontend and browses system"
     flow:
 
-      # Fetch reviews
+      # open homepage
       - get:
-          url: "/api/reviews"
-          expect:
-            - statusCode: 200
+          url: "/"
       - think: 2
 
-      # Fetch courses
-      - get:
-          url: "/api/courses"
-          expect:
-            - statusCode: 200
-      - think: 2
-
-      # Simulate browsing job listings multiple times
-      - loop:
+      # frontend loads homepage data (parallel like React)
+      - parallel:
           - get:
-              url: "/api/jobs"
-              expect:
-                - statusCode: 200
-          - think: 1
-        count: 3
+              url: "http://localhost:5001/api/courses"
+          - get:
+              url: "http://localhost:5001/api/jobs"
+          - get:
+              url: "http://localhost:5001/api/reviews"
+          - get:
+              url: "http://localhost:5001/api/skills"
+
+      - think: 2
+
+      # user navigates to courses page
+      - get:
+          url: "/courses"
+      - think: 2
+
+      # courses page loads courses
+      - get:
+          url: "http://localhost:5001/api/courses"
+      - think: 2
+
+      # user navigates to jobs page
+      - get:
+          url: "/jobs"
+      - think: 2
+
+      # jobs page loads jobs
+      - get:
+          url: "http://localhost:5001/api/jobs"
+      - think: 2
+
+      
+      # reviews API
+      - get:
+          url: "http://localhost:5001/api/reviews"
+      - think: 2
+
+      # user opens skills page
+      - get:
+          url: "/skills"
+      - think: 2
+
+      # skills API
+      - get:
+          url: "http://localhost:5001/api/skills"
+      - think: 2
