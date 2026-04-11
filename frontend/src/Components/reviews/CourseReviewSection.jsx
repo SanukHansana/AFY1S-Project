@@ -1,8 +1,9 @@
 //frontend/src/Components/reviews/CourseReviewSection.jsx
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import API_BASE_URL from "../../config/api";
 
-const API_URL = "http://localhost:5001/api/reviews";
+const API_URL = `${API_BASE_URL}/api/reviews`;
 
 export default function CourseReviewSection({ courseId, token = null }) {
   const [reviews, setReviews] = useState([]);

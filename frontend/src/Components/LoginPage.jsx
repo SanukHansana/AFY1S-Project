@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";  //  Use config for API URL
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function Login() {
       if (!token) return;
 
       try {
-        const res = await fetch("http://localhost:5001/api/users/me", {
+        const res = await fetch(`${API_BASE_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -74,7 +75,7 @@ export default function Login() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:5001/api/users/login", {
+      const res = await fetch(`${API_BASE_URL}/api/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

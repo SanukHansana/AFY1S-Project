@@ -1,7 +1,9 @@
 //frontend/src/Components/reviews/JobReviewSection.jsx
 import { useEffect, useState } from "react";
+import API_BASE_URL from "../../config/api";  
 
-const API_URL = "http://localhost:5001/api/reviews";
+
+const API_URL = `${API_BASE_URL}/api/reviews`;
 
 export default function JobReviewSection({ jobId, token }) {
   const [reviews, setReviews] = useState([]);
