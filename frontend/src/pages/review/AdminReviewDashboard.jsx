@@ -64,7 +64,7 @@ export default function AdminReviewDashboard() {
 
   return (
   <>
-    <NavBar />
+    
 
     <div className="min-h-screen bg-[#f8f5ff] py-10">
       
@@ -126,7 +126,7 @@ export default function AdminReviewDashboard() {
       </div>
     </div>
 
-    <Footer />
+    
   </>
 );
 
