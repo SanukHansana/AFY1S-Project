@@ -1,26 +1,97 @@
-//frontend/src/pages/CreateJobPage.jsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
-import { createJob } from "../services/jobService";
+import { createJob, getJobById, updateJob } from "../services/jobService";
+
+const initialForm = {
+  title: "",
+  description: "",
+  category: "",
+  budget: "",
+  skillsRequired: "",
+  deadline: "",
+  jobType: "Remote",
+  location: "",
+};
+
+const formatDateForInput = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.split("T")[0];
+  }
+
+  return new Date(value).toISOString().split("T")[0];
+};
+
+const mapJobToForm = (job) => ({
+  title: job.title || "",
+  description: job.description || "",
+  category: job.category || "",
+  budget: job.budget != null ? String(job.budget) : "",
+  skillsRequired: Array.isArray(job.skillsRequired)
+    ? job.skillsRequired.join(", ")
+    : "",
+  deadline: formatDateForInput(job.deadline),
+  jobType: job.jobType || "Remote",
+  location: job.location || "",
+});
 
 export default function CreateJobPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const isEditMode = Boolean(id);
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    category: "",
-    budget: "",
-    skillsRequired: "",
-    deadline: "",
-    jobType: "Remote",
-    location: "",
-  });
+  const savedUser = localStorage.getItem("user");
+  const user = savedUser ? JSON.parse(savedUser) : null;
+  const userId = user?._id || user?.id;
 
+  const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(isEditMode);
+  const [canManageJob, setCanManageJob] = useState(!isEditMode);
+  const [jobStatus, setJobStatus] = useState("");
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setPageLoading(false);
+      setCanManageJob(true);
+      setForm(initialForm);
+      setJobStatus("");
+      return;
+    }
+
+    const loadJobForEdit = async () => {
+      try {
+        setPageLoading(true);
+        setMessage("");
+        setCanManageJob(false);
+
+        const job = await getJobById(id);
+        const isOwner =
+          user?.role === "admin" || job.employerId?._id === userId;
+
+        if (!isOwner) {
+          setMessage("You can only edit jobs you created.");
+          return;
+        }
+
+        setForm(mapJobToForm(job));
+        setJobStatus(job.status || "open");
+        setCanManageJob(true);
+      } catch (error) {
+        setMessage(error.message || "Failed to load job details");
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    loadJobForEdit();
+  }, [id, isEditMode, user?.role, userId]);
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -37,6 +108,13 @@ export default function CreateJobPage() {
       return;
     }
 
+    const budgetValue = Number(form.budget);
+
+    if (Number.isNaN(budgetValue) || budgetValue < 0) {
+      setMessage("Budget must be a valid non-negative number");
+      return;
+    }
+
     try {
       setLoading(true);
       setMessage("");
@@ -45,7 +123,7 @@ export default function CreateJobPage() {
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category.trim() || "General",
-        budget: Number(form.budget),
+        budget: budgetValue,
         skillsRequired: form.skillsRequired
           .split(",")
           .map((skill) => skill.trim())
@@ -55,14 +133,74 @@ export default function CreateJobPage() {
         location: form.location.trim(),
       };
 
-      const createdJob = await createJob(payload);
-      navigate(`/jobs/${createdJob._id}`);
+      const savedJob = isEditMode
+        ? await updateJob(id, payload)
+        : await createJob(payload);
+
+      navigate(`/jobs/${savedJob._id}`);
     } catch (error) {
-      setMessage(error.message || "Failed to create job");
+      setMessage(
+        error.message || (isEditMode ? "Failed to update job" : "Failed to create job")
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <>
+        <NavBar />
+
+        <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-white px-4 py-10">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-purple-100 bg-white p-6 text-center shadow-sm">
+            <p className="text-lg font-medium text-gray-600">
+              Loading job details...
+            </p>
+          </div>
+        </div>
+
+        <Footer />
+      </>
+    );
+  }
+
+  if (isEditMode && !canManageJob) {
+    return (
+      <>
+        <NavBar />
+
+        <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-white px-4 py-10">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
+            <h1 className="text-2xl font-extrabold text-gray-900">Edit Job</h1>
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+              {message || "This job cannot be edited right now."}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/my-jobs")}
+                className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow hover:opacity-95"
+              >
+                Back to My Jobs
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/jobs")}
+                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Browse Jobs
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -72,14 +210,21 @@ export default function CreateJobPage() {
         <div className="mx-auto max-w-3xl rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
           <div className="mb-6">
             <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700">
-              Client Dashboard
+              {isEditMode ? "Job Management" : "Client Dashboard"}
             </span>
             <h1 className="mt-3 text-3xl font-extrabold text-gray-900">
-              Create Job
+              {isEditMode ? "Edit Job" : "Create Job"}
             </h1>
             <p className="mt-2 text-gray-600">
-              Post a job so freelancers can apply.
+              {isEditMode
+                ? "Update the details of your posted job."
+                : "Post a job so freelancers can apply."}
             </p>
+            {isEditMode && (
+              <p className="mt-2 text-sm font-medium text-gray-500">
+                Current status: <span className="capitalize">{jobStatus || "open"}</span>
+              </p>
+            )}
           </div>
 
           {message && (
@@ -218,12 +363,18 @@ export default function CreateJobPage() {
                 disabled={loading}
                 className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow hover:opacity-95 disabled:opacity-60"
               >
-                {loading ? "Creating..." : "Create Job"}
+                {loading
+                  ? isEditMode
+                    ? "Updating..."
+                    : "Creating..."
+                  : isEditMode
+                    ? "Update Job"
+                    : "Create Job"}
               </button>
 
               <button
                 type="button"
-                onClick={() => navigate("/jobs")}
+                onClick={() => navigate(isEditMode ? `/jobs/${id}` : "/jobs")}
                 className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 Cancel
