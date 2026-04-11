@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../../Components/NavBar.jsx";
 import Footer from "../../Components/Footer.jsx";
+import API_BASE_URL from "../../config/api";  // Use config for API URL
 
-const API_URL = "http://localhost:5001/api/reviews";
+const API_URL = `${API_BASE_URL}/api/reviews`;
 
 export default function AdminReviewDashboard() {
   const [reviews, setReviews] = useState([]);

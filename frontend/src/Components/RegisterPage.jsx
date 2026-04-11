@@ -1,6 +1,7 @@
 //frontend/src/Components/RegisterPage.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";  //  Use config for API URL
 
 export default function Register() {
   const navigate = useNavigate(); // ✅ INIT NAVIGATE
@@ -31,7 +32,7 @@ export default function Register() {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:5001/api/users/register", {
+      const res = await fetch(`${API_BASE_URL}/api/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
