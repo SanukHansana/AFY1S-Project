@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+import API_BASE_URL from "../config/api";
 import {
   Chart as ChartJS,
   BarElement,
@@ -14,7 +15,7 @@ import { Bar } from "react-chartjs-2";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const API = axios.create({
-  baseURL: "http://localhost:5001/api",
+  baseURL: `${API_BASE_URL}/api`, // Use config for API URL
 });
 
 export default function AdminDashboard() {
