@@ -26,6 +26,7 @@ export default function JobsPage() {
 
   const savedUser = localStorage.getItem("user");
   const user = savedUser ? JSON.parse(savedUser) : null;
+  const canViewMyJobs = user?.role === "client";
   const canCreateJob = user?.role === "client" || user?.role === "admin";
 
   const fetchAllJobs = async (
@@ -103,13 +104,26 @@ export default function JobsPage() {
               </p>
             </div>
 
-            {canCreateJob && (
-              <Link
-                to="/jobs/create"
-                className="inline-block rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow hover:opacity-95"
-              >
-                Create Job
-              </Link>
+            {(canViewMyJobs || canCreateJob) && (
+              <div className="flex flex-wrap justify-center gap-3 md:justify-end">
+                {canViewMyJobs && (
+                  <Link
+                    to="/my-jobs"
+                    className="inline-block rounded-xl border border-purple-200 bg-white px-5 py-3 text-sm font-semibold text-purple-700 shadow-sm hover:bg-purple-50"
+                  >
+                    View My Jobs
+                  </Link>
+                )}
+
+                {canCreateJob && (
+                  <Link
+                    to="/jobs/create"
+                    className="inline-block rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow hover:opacity-95"
+                  >
+                    Create Job
+                  </Link>
+                )}
+              </div>
             )}
           </div>
 

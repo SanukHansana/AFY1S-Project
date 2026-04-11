@@ -1,4 +1,3 @@
-//frontend/src/pages/MyJobsPage.jsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteJob, getJobs } from "../services/jobService";
@@ -12,6 +11,7 @@ export default function MyJobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [deletingId, setDeletingId] = useState("");
 
   const fetchMyJobs = async () => {
     try {
@@ -43,15 +43,23 @@ export default function MyJobsPage() {
   }, []);
 
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this job?");
-    if (!confirmDelete) return;
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this job?"
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
 
     try {
+      setDeletingId(id);
       await deleteJob(id);
       setMessage("Job deleted successfully");
-      fetchMyJobs();
+      await fetchMyJobs();
     } catch (error) {
       setMessage(error.message || "Failed to delete job");
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -105,7 +113,7 @@ export default function MyJobsPage() {
                     <div>
                       <h2 className="text-xl font-bold text-gray-800">{job.title}</h2>
                       <p className="mt-1 text-sm text-gray-500">
-                        {job.category || "General"} • {job.jobType || "Remote"}
+                        {job.category || "General"} | {job.jobType || "Remote"}
                       </p>
                       <p className="mt-2 text-sm text-gray-600">
                         Status: <span className="font-semibold">{job.status}</span> |
@@ -125,12 +133,22 @@ export default function MyJobsPage() {
                       </Link>
 
                       {(user.role === "client" || user.role === "admin") && (
-                        <button
-                          onClick={() => handleDelete(job._id)}
-                          className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-600"
-                        >
-                          Delete
-                        </button>
+                        <>
+                          <Link
+                            to={`/jobs/${job._id}/edit`}
+                            className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 shadow-sm hover:bg-purple-100"
+                          >
+                            Edit
+                          </Link>
+
+                          <button
+                            onClick={() => handleDelete(job._id)}
+                            disabled={deletingId === job._id}
+                            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {deletingId === job._id ? "Deleting..." : "Delete"}
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

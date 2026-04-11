@@ -36,7 +36,6 @@ function App() {
 
         {/* job routes */}
         <Route path="/jobs" element={<JobsPage />} />
-        <Route path="/jobs/:id" element={<JobDetailsPage />} />
 
         <Route
           path="/jobs/create"
@@ -46,6 +45,17 @@ function App() {
             </RoleRoute>
           }
         />
+
+        <Route
+          path="/jobs/:id/edit"
+          element={
+            <RoleRoute allowedRoles={["client", "admin"]}>
+              <CreateJobPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route path="/jobs/:id" element={<JobDetailsPage />} />
 
         <Route
           path="/my-jobs"
