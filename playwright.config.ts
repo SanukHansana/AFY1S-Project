@@ -38,7 +38,9 @@ export default defineConfig({
   webServer: {
     command: 'npm --prefix backend start',
     url: 'http://localhost:5001/api/jobs',
-    reuseExistingServer: !process.env.CI,
+    // These integration tests call the backend API directly.
+    // Reuse an already-running backend instead of failing on port 5001.
+    reuseExistingServer: true,
     timeout: 120000,
   },
 
