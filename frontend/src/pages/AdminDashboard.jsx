@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AdminReviewDashboard from "./review/AdminReviewDashboard";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -29,8 +30,6 @@ export default function AdminDashboard() {
   const [editingCourse, setEditingCourse] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [editingReview, setEditingReview] = useState(null);
   const usersPerPage = 5;
   const token = localStorage.getItem("token");
 
@@ -103,61 +102,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // ── REVIEWS ──────────────────────────────────────────────────────────────
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      const res = await API.get("/reviews", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // Support both array and { data: [...] } shapes
-      setReviews(Array.isArray(res.data) ? res.data : res.data?.data || []);
-    } catch (err) {
-      console.error("Failed to load reviews:", err);
-      toast.error("Failed to load reviews");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteReview = async (id) => {
-    if (!window.confirm("Delete this review?")) return;
-    try {
-      await API.delete(`/reviews/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("Review deleted");
-      fetchReviews();
-    } catch (err) {
-      console.error(err);
-      toast.error("Delete failed");
-    }
-  };
-
-  const handleUpdateReview = async () => {
-    try {
-      await API.put(
-        `/reviews/${editingReview._id}`,
-        {
-          rating: editingReview.rating,
-          comment: editingReview.comment,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Review updated");
-      setEditingReview(null);
-      fetchReviews();
-    } catch (err) {
-      console.error(err);
-      toast.error("Update failed");
-    }
-  };
-  // ─────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (activeTab === "courses") fetchCourses();
     if (activeTab === "jobs") fetchJobs();
-    if (activeTab === "reviews") fetchReviews();
   }, [activeTab]);
 
   // Delete user
@@ -668,124 +616,7 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {/* ── REVIEWS ───────────────────────────────────────────────────────── */}
-            {activeTab === "reviews" && (
-              <>
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">⭐ Reviews</h2>
-
-                <div className="bg-white dark:bg-[#020617] border border-[#e2e8f0] dark:border-[#1e293b] rounded-2xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-[#f1f5f9] dark:bg-[#1e293b] text-gray-700 dark:text-gray-300">
-                      <tr>
-                        <th className="p-4 text-left">Reviewer</th>
-                        <th className="p-4 text-left">Rating</th>
-                        <th className="p-4 text-left">Comment</th>
-                        <th className="p-4 text-left">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reviews.length === 0 && (
-                        <tr>
-                          <td colSpan="4" className="text-center p-4 text-gray-600 dark:text-gray-400">
-                            No reviews found
-                          </td>
-                        </tr>
-                      )}
-                      {reviews.map((review) => (
-                        <tr
-                          key={review._id}
-                          className="border-t border-[#e2e8f0] dark:border-[#1e293b] hover:bg-[#f8fafc] dark:hover:bg-[#1e293b]"
-                        >
-                          <td className="p-4 font-medium text-gray-900 dark:text-gray-100">
-                            {review.reviewerId?.name || review.reviewer?.name || "Anonymous"}
-                          </td>
-
-                          <td className="p-4">
-                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
-                              {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
-                            </span>
-                          </td>
-
-                          <td className="p-4 text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                            {review.comment}
-                          </td>
-
-                          <td className="p-4 flex gap-3">
-                            <button
-                              onClick={() => setEditingReview({ ...review })}
-                              className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteReview(review._id)}
-                              className="text-red-500 hover:text-red-700 dark:text-red-400"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* EDIT REVIEW MODAL */}
-                {editingReview && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-[#020617] p-6 rounded-2xl w-96 space-y-4">
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Review</h2>
-
-                      <div>
-                        <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Rating (1–5)</label>
-                        <select
-                          value={editingReview.rating}
-                          onChange={(e) =>
-                            setEditingReview({ ...editingReview, rating: Number(e.target.value) })
-                          }
-                          className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
-                        >
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <option key={n} value={n}>
-                              {n} {"★".repeat(n)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Comment</label>
-                        <textarea
-                          value={editingReview.comment}
-                          onChange={(e) =>
-                            setEditingReview({ ...editingReview, comment: e.target.value })
-                          }
-                          rows={4}
-                          className="w-full p-2 rounded bg-gray-100 dark:bg-[#1e293b]"
-                          placeholder="Review comment..."
-                        />
-                      </div>
-
-                      <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => setEditingReview(null)}
-                          className="px-4 py-2 bg-gray-300 rounded"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleUpdateReview}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-            {/* ─────────────────────────────────────────────────────────────────── */}
+            {activeTab === "reviews" && <AdminReviewDashboard />}
 
           </main>
         </div>
