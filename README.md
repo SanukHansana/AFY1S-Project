@@ -349,9 +349,15 @@ Run the review unit test from the project root:
 node --test backend/unittests/reviewservice.test.js
 ```
 
+Run the enrollment scripted test from the project root:
+
+```bash
+node --test test-enrollment-summary.js
+```
+
 ### Integration Testing
 
-The project uses Playwright request-based API integration tests.
+The project uses Playwright request-based API integration tests and additional script-based integration checks for some modules.
 
 Run the job integration test:
 
@@ -371,6 +377,12 @@ Run the user integration test:
 npx playwright test user.spec.js
 ```
 
+Run the skills Wikipedia integration script from the project root:
+
+```bash
+node --test backend/test-wikipedia-integration.js
+```
+
 Run all Playwright tests:
 
 ```bash
@@ -381,6 +393,7 @@ Notes:
 
 - These integration tests currently target the backend API, not the frontend UI
 - Playwright is configured to start or reuse the backend server automatically
+- The Wikipedia integration command is an additional backend script-based check
 
 ### Performance Testing
 
@@ -442,19 +455,20 @@ This section can remain inside the README or be moved into a separate PDF for ac
 | Test Type | Tool | Scope |
 | --- | --- | --- |
 | Unit Testing | `node:test` | Backend service logic |
-| Integration Testing | Playwright `request` API | Backend API workflow validation |
+| Integration Testing | Playwright `request` API and script-based `node:test` checks | Backend API workflow validation and additional backend integration checks |
 | Performance Testing | Load-test YAML configuration | API load behavior |
 
 ### Current Testing Summary
 
 | Area | Test Type | File | Command |
 | --- | --- | --- | --- |
-| User | Unit | `backend/unittests/userservice.test.js` | `node --test backend/unittests/
-userservice.test.js` |
+| User | Unit | `backend/unittests/userservice.test.js` | `node --test backend/unittests/userservice.test.js` |
 | User | Integration | `tests/user.spec.js` | `npx playwright test user.spec.js` |
 | API Load | Performance | `user-management-load-test.yml` | `npx artillery run user-management-load-test.yml` |
 | Jobs | Unit | `backend/unittests/jobservice.test.js` | `node --test backend/unittests/jobservice.test.js` |
 | Jobs | Integration | `tests/job.spec.js` | `npx playwright test job.spec.js` |
+| Enrollments | Scripted Test | `test-enrollment-summary.js` | `node --test test-enrollment-summary.js` |
+| Skills | Scripted Integration | `backend/test-wikipedia-integration.js` | `node --test backend/test-wikipedia-integration.js` |
 | Reviews | Unit | `backend/unittests/reviewservice.test.js` | `node --test backend/unittests/reviewservice.test.js` |
 | Reviews | Integration | `tests/review.spec.js` | `npx playwright test review.spec.js` |
 | Mixed API Load | Performance | `multiload-test.yml` | `npx artillery run multiload-test.yml` |
