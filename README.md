@@ -32,7 +32,6 @@ The application combines multiple academic assignment features into one connecte
 | Enrollments | Lets authenticated users enroll in courses, update progress, complete courses, and view enrolled items |
 | Jobs | Supports job posting, job browsing, editing, deleting, applying, and hiring workflows |
 | Reviews | Supports public review listing and protected create, update, and delete actions |
-| Notes | Exposes notes data through the backend API |
 | Currency Conversion | Supports converted job budgets through exchange-rate endpoints |
 
 ### Key Highlights
@@ -215,7 +214,6 @@ Password: qwe123QWE!@#
 | `/` | Home page |
 | `/login` | User login |
 | `/register` | User registration |
-| `/note` | Notes page |
 | `/skills` | Skills page |
 | `/courses` | Course listing |
 | `/courses/new` | Create course |
@@ -230,35 +228,43 @@ Password: qwe123QWE!@#
 
 ## API Endpoint Documentation
 
-Base API URL:
+Base Backend URL:
 
 ```text
-http://localhost:5001/api
+http://localhost:5001
+```
+
+All endpoint paths below already include the `/api` prefix.
+
+Correct format example:
+
+```text
+/api/skills/:id
 ```
 
 ### User Endpoints
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/users/register` | Public | Register a new user |
-| `POST` | `/users/login` | Public | Login and receive JWT |
-| `GET` | `/users` | Admin | Get all users |
-| `GET` | `/users/me` | Authenticated | Get the current logged-in user |
-| `GET` | `/users/:id` | Authenticated | Get a user by ID |
-| `PUT` | `/users/:id` | Current implementation uses validation but no route-level auth middleware | Update a user |
-| `DELETE` | `/users/:id` | Admin | Delete a user |
+| `POST` | `/api/users/register` | Public | Register a new user |
+| `POST` | `/api/users/login` | Public | Login and receive JWT |
+| `GET` | `/api/users` | Admin | Get all users |
+| `GET` | `/api/users/me` | Authenticated | Get the current logged-in user |
+| `GET` | `/api/users/:id` | Authenticated | Get a user by ID |
+| `PUT` | `/api/users/:id` | Current implementation uses validation but no route-level auth middleware | Update a user |
+| `DELETE` | `/api/users/:id` | Admin | Delete a user |
 
 ### Job Endpoints
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `GET` | `/jobs` | Public | Get jobs with filters, pagination, and optional currency conversion |
-| `GET` | `/jobs/:id` | Public | Get a single job |
-| `POST` | `/jobs` | Client/Admin | Create a job |
-| `PUT` | `/jobs/:id` | Owner/Admin | Update a job |
-| `DELETE` | `/jobs/:id` | Owner/Admin | Delete a job |
-| `POST` | `/jobs/:id/apply` | Freelancer/Admin | Apply to a job |
-| `POST` | `/jobs/:id/hire` | Client/Admin | Hire a freelancer for a job |
+| `GET` | `/api/jobs` | Public | Get jobs with filters, pagination, and optional currency conversion |
+| `GET` | `/api/jobs/:id` | Public | Get a single job |
+| `POST` | `/api/jobs` | Client/Admin | Create a job |
+| `PUT` | `/api/jobs/:id` | Owner/Admin | Update a job |
+| `DELETE` | `/api/jobs/:id` | Owner/Admin | Delete a job |
+| `POST` | `/api/jobs/:id/apply` | Freelancer/Admin | Apply to a job |
+| `POST` | `/api/jobs/:id/hire` | Client/Admin | Hire a freelancer for a job |
 
 Common job query parameters:
 
@@ -276,58 +282,48 @@ Common job query parameters:
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/courses` | Current implementation has validation but no route-level auth middleware | Create a course |
-| `GET` | `/courses` | Public | Get all courses |
-| `GET` | `/courses/:id` | Public | Get a course by ID |
-| `PUT` | `/courses/:id` | Current implementation has validation but no route-level auth middleware | Update a course |
-| `DELETE` | `/courses/:id` | Current implementation has validation but no route-level auth middleware | Delete a course |
+| `POST` | `/api/courses` | Current implementation has validation but no route-level auth middleware | Create a course |
+| `GET` | `/api/courses` | Public | Get all courses |
+| `GET` | `/api/courses/:id` | Public | Get a course by ID |
+| `PUT` | `/api/courses/:id` | Current implementation has validation but no route-level auth middleware | Update a course |
+| `DELETE` | `/api/courses/:id` | Current implementation has validation but no route-level auth middleware | Delete a course |
 
 ### Enrollment Endpoints
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/enrollments` | Authenticated | Enroll in a course |
-| `GET` | `/enrollments/my-courses` | Authenticated | Get current user enrollments |
-| `PUT` | `/enrollments/:enrollmentId/progress` | Authenticated | Update course progress |
-| `PUT` | `/enrollments/:enrollmentId/complete` | Authenticated | Complete a course |
-| `GET` | `/enrollments/:enrollmentId` | Authenticated | Get enrollment details |
-| `DELETE` | `/enrollments/:enrollmentId` | Authenticated | Unenroll from a course |
+| `POST` | `/api/enrollments` | Authenticated | Enroll in a course |
+| `GET` | `/api/enrollments/my-courses` | Authenticated | Get current user enrollments |
+| `PUT` | `/api/enrollments/:enrollmentId/progress` | Authenticated | Update course progress |
+| `PUT` | `/api/enrollments/:enrollmentId/complete` | Authenticated | Complete a course |
+| `GET` | `/api/enrollments/:enrollmentId` | Authenticated | Get enrollment details |
+| `DELETE` | `/api/enrollments/:enrollmentId` | Authenticated | Unenroll from a course |
 
 ### Review Endpoints
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `GET` | `/reviews` | Public | Get all reviews |
-| `GET` | `/reviews/:id` | Public | Get a review by ID |
-| `POST` | `/reviews` | Authenticated | Create a review |
-| `PUT` | `/reviews/:id` | Authenticated | Update a review |
-| `DELETE` | `/reviews/:id` | Authenticated | Delete a review |
+| `GET` | `/api/reviews` | Public | Get all reviews |
+| `GET` | `/api/reviews/:id` | Public | Get a review by ID |
+| `POST` | `/api/reviews` | Authenticated | Create a review |
+| `PUT` | `/api/reviews/:id` | Authenticated | Update a review |
+| `DELETE` | `/api/reviews/:id` | Authenticated | Delete a review |
 
 ### Skill Endpoints
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/skills` | Current implementation has validation but no route-level auth middleware | Create a skill |
-| `GET` | `/skills` | Public | Get all skills |
-| `GET` | `/skills/:id` | Public | Get a skill by ID |
-| `PUT` | `/skills/:id` | Current implementation has validation but no route-level auth middleware | Update a skill |
-| `DELETE` | `/skills/:id` | Current implementation has validation but no route-level auth middleware | Delete a skill |
-
-### Notes Endpoints
-
-| Method | Endpoint | Auth | Description |
-| --- | --- | --- | --- |
-| `GET` | `/` | Public | Get all notes |
-
-Note:
-
-- Notes are mounted at `/api`, so the notes endpoint becomes `GET /api/`
+| `POST` | `/api/skills` | Current implementation has validation but no route-level auth middleware | Create a skill |
+| `GET` | `/api/skills` | Public | Get all skills |
+| `GET` | `/api/skills/:id` | Public | Get a skill by ID |
+| `PUT` | `/api/skills/:id` | Current implementation has validation but no route-level auth middleware | Update a skill |
+| `DELETE` | `/api/skills/:id` | Current implementation has validation but no route-level auth middleware | Delete a skill |
 
 ### Exchange Rate Endpoints
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `GET` | `/exchange/convert` | Public | Convert currency values |
+| `GET` | `/api/exchange/convert` | Public | Convert currency values |
 
 ## Testing
 
