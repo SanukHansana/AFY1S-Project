@@ -251,7 +251,7 @@ Correct format example:
 | `GET` | `/api/users` | Admin | Get all users |
 | `GET` | `/api/users/me` | Authenticated | Get the current logged-in user |
 | `GET` | `/api/users/:id` | Authenticated | Get a user by ID |
-| `PUT` | `/api/users/:id` | Current implementation uses validation but no route-level auth middleware | Update a user |
+| `PUT` | `/api/users/:id` | Authenticated | Update a user |
 | `DELETE` | `/api/users/:id` | Admin | Delete a user |
 
 ### Job Endpoints
@@ -337,6 +337,12 @@ Run the job unit test from the project root:
 node --test backend/unittests/jobservice.test.js
 ```
 
+Run the user unit test from the project root:
+
+```bash
+node --test backend/unittests/userservice.test.js
+```
+
 Run the review unit test from the project root:
 
 ```bash
@@ -357,6 +363,12 @@ Run the review integration test:
 
 ```bash
 npx playwright test review.spec.js
+```
+
+Run the user integration test:
+
+```bash
+npx playwright test user.spec.js
 ```
 
 Run all Playwright tests:
@@ -437,6 +449,10 @@ This section can remain inside the README or be moved into a separate PDF for ac
 
 | Area | Test Type | File | Command |
 | --- | --- | --- | --- |
+| User | Unit | `backend/unittests/userservice.test.js` | `node --test backend/unittests/
+userservice.test.js` |
+| User | Integration | `tests/user.spec.js` | `npx playwright test user.spec.js` |
+| API Load | Performance | `user-management-load-test.yml` | `npx artillery run user-management-load-test.yml` |
 | Jobs | Unit | `backend/unittests/jobservice.test.js` | `node --test backend/unittests/jobservice.test.js` |
 | Jobs | Integration | `tests/job.spec.js` | `npx playwright test job.spec.js` |
 | Reviews | Unit | `backend/unittests/reviewservice.test.js` | `node --test backend/unittests/reviewservice.test.js` |
