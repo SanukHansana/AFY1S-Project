@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
+import JobImageBanner from "../Components/JobImageBanner";
 import {
   applyToJob,
   deleteJob,
@@ -10,6 +11,18 @@ import {
   hireFreelancer,
   updateJob,
 } from "../services/jobService";
+
+const getEntityId = (entity) => {
+  if (!entity) {
+    return "";
+  }
+
+  if (typeof entity === "string") {
+    return entity;
+  }
+
+  return entity._id || entity.id || "";
+};
 
 export default function JobDetailsPage() {
   const { id } = useParams();
@@ -37,6 +50,10 @@ export default function JobDetailsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   useEffect(() => {
     fetchJob();
@@ -120,7 +137,7 @@ export default function JobDetailsPage() {
     );
   }
 
-  const userId = user?._id || user?.id;
+  const userId = getEntityId(user);
 
   const isFreelancer = user?.role === "freelancer";
   const isAdmin = user?.role === "admin";
@@ -129,10 +146,10 @@ export default function JobDetailsPage() {
   const isClientOwner =
     user &&
     (user.role === "client" || user.role === "admin") &&
-    (job.employerId?._id === userId || user.role === "admin");
+    (getEntityId(job.employerId) === userId || user.role === "admin");
 
   const alreadyApplied = job.applicants?.some(
-    (applicant) => applicant._id === userId
+    (applicant) => getEntityId(applicant) === userId
   );
 
   const canApply =
@@ -140,7 +157,7 @@ export default function JobDetailsPage() {
     !alreadyApplied &&
     !job.freelancerId &&
     ["open", "applied"].includes(job.status) &&
-    job.employerId?._id !== userId;
+    getEntityId(job.employerId) !== userId;
 
   const displayedBudget =
     job.budgetConverted?.amount != null
@@ -202,6 +219,18 @@ export default function JobDetailsPage() {
               {message}
             </p>
           )}
+
+          <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+            <JobImageBanner
+              image={job.image}
+              title={job.title}
+              badge={job.jobType || "Remote"}
+              meta={`${job.category || "General"} | ${
+                job.location || "No location"
+              }`}
+              heightClass="h-72"
+            />
+          </div>
 
           <div className="mt-6">
             <p className="mb-4 text-gray-700">{job.description}</p>

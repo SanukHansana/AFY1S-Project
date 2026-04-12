@@ -2,6 +2,10 @@ import { test, expect } from "@playwright/test";
 
 const API_BASE =
   process.env.PLAYWRIGHT_API_BASE_URL || "http://localhost:5001/api";
+const JOB_IMAGE_ONE =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+const JOB_IMAGE_TWO =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==";
 
 const authHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
@@ -114,6 +118,7 @@ test("job API supports client management and freelancer application flow", async
       deadline: getRelativeDateString(7),
       jobType: "Remote",
       location: "Colombo",
+      image: JOB_IMAGE_ONE,
     },
   });
 
@@ -122,6 +127,7 @@ test("job API supports client management and freelancer application flow", async
   const jobId = createdJob._id;
 
   expect(createdJob.title).toBe(`Integration Job ${tag}`);
+  expect(createdJob.image).toBe(JOB_IMAGE_ONE);
 
   const forbiddenUpdate = await request.put(`${API_BASE}/jobs/${jobId}`, {
     headers: authHeaders(freelancer.token),
@@ -143,6 +149,7 @@ test("job API supports client management and freelancer application flow", async
       deadline: getRelativeDateString(14),
       jobType: "Hybrid",
       location: "Kandy",
+      image: JOB_IMAGE_TWO,
       employerId: getEntityId(freelancer.user),
     },
   });
@@ -153,6 +160,7 @@ test("job API supports client management and freelancer application flow", async
   expect(updatedJob.title).toBe(`Updated Integration Job ${tag}`);
   expect(updatedJob.budget).toBe(1500);
   expect(updatedJob.location).toBe("Kandy");
+  expect(updatedJob.image).toBe(JOB_IMAGE_TWO);
   expect(getEntityId(updatedJob.employerId)).toBe(getEntityId(client.user));
 
   const getSingleResponse = await request.get(`${API_BASE}/jobs/${jobId}`);

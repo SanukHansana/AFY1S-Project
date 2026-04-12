@@ -6,12 +6,18 @@ const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 3000;
 const MAX_CATEGORY_LENGTH = 80;
 const MAX_LOCATION_LENGTH = 120;
+const MAX_IMAGE_DATA_LENGTH = 1100000;
 const BUDGET_PATTERN = /^\d+(\.\d{1,2})?$/;
+const IMAGE_DATA_URL_PATTERN = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+const IMAGE_URL_PATTERN = /^https?:\/\/\S+$/i;
 const JOB_TYPES = ["Remote", "On-site", "Hybrid"];
 const JOB_STATUSES = ["open", "applied", "in-progress", "completed", "cancelled"];
 
 const hasOwn = (object, key) =>
   Object.prototype.hasOwnProperty.call(object, key);
+
+const isValidJobImage = (value) =>
+  IMAGE_DATA_URL_PATTERN.test(value) || IMAGE_URL_PATTERN.test(value);
 
 const getTodayDateString = () => {
   const today = new Date();
@@ -123,6 +129,20 @@ const validateAndSanitizeJobPayload = (
             .filter(Boolean)
         )
       );
+    }
+  }
+
+  if (hasOwn(payload, "image")) {
+    const image = String(payload.image ?? "").trim();
+
+    if (!image) {
+      sanitized.image = "";
+    } else if (image.length > MAX_IMAGE_DATA_LENGTH) {
+      errors.push("Job image is too large");
+    } else if (!isValidJobImage(image)) {
+      errors.push("Job image must be a valid uploaded image");
+    } else {
+      sanitized.image = image;
     }
   }
 

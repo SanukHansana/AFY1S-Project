@@ -1,5 +1,5 @@
-//frontend/src/Components/JobCard.jsx
 import { Link } from "react-router-dom";
+import JobImageBanner from "./JobImageBanner";
 
 export default function JobCard({ job }) {
   const displayedBudget =
@@ -9,12 +9,19 @@ export default function JobCard({ job }) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+      <JobImageBanner
+        image={job.image}
+        title={job.title}
+        badge={job.jobType || "Remote"}
+        meta={`${job.category || "General"} | ${job.location || "No location"}`}
+      />
+
       <div className="p-5">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-xl font-bold text-gray-800">{job.title}</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {job.category || "General"} • {job.jobType || "Remote"} •{" "}
+              {job.category || "General"} | {job.jobType || "Remote"} |{" "}
               {job.location || "No location"}
             </p>
           </div>

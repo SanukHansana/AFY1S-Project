@@ -30,6 +30,11 @@ const jobSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    image: {
+      type: String,
+      default: "",
+      maxlength: [1100000, "Job image is too large"],
+    },
 
     employerId: {
       type: mongoose.Schema.Types.ObjectId,

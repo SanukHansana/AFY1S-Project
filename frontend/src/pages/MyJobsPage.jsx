@@ -3,35 +3,131 @@ import { Link } from "react-router-dom";
 import { deleteJob, getJobs } from "../services/jobService";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
+import JobImageBanner from "../Components/JobImageBanner";
+
+const getStoredUser = () => {
+  try {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getEntityId = (entity) => {
+  if (!entity) {
+    return "";
+  }
+
+  if (typeof entity === "string") {
+    return entity;
+  }
+
+  return entity._id || entity.id || "";
+};
+
+const decodeTokenPayload = (token) => {
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const payload = token.split(".")[1];
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "="
+    );
+
+    return JSON.parse(atob(paddedPayload));
+  } catch {
+    return null;
+  }
+};
+
+const getCurrentUserSnapshot = (token) => {
+  const storedUser = getStoredUser();
+  const tokenPayload = decodeTokenPayload(token);
+  const tokenUserId = tokenPayload?.id || tokenPayload?._id || "";
+  const storedUserId = getEntityId(storedUser);
+  const resolvedUserId = tokenUserId || storedUserId;
+  const resolvedRole = tokenPayload?.role || storedUser?.role || "";
+
+  if (!resolvedUserId && !resolvedRole && !storedUser) {
+    return null;
+  }
+
+  return {
+    ...storedUser,
+    _id: storedUser?._id || resolvedUserId,
+    id: storedUser?.id || resolvedUserId,
+    role: resolvedRole,
+  };
+};
 
 export default function MyJobsPage() {
-  const savedUser = localStorage.getItem("user");
-  const user = savedUser ? JSON.parse(savedUser) : null;
+  const token = localStorage.getItem("token");
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const [currentUser, setCurrentUser] = useState(() =>
+    getCurrentUserSnapshot(token)
+  );
+
+  const loadAllJobs = async () => {
+    const firstPage = await getJobs({ page: 1, limit: 100 });
+    const totalPages = firstPage.pagination?.totalPages || 1;
+
+    if (totalPages <= 1) {
+      return firstPage.jobs || [];
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        getJobs({ page: index + 2, limit: 100 })
+      )
+    );
+
+    return [
+      ...(firstPage.jobs || []),
+      ...remainingPages.flatMap((pageData) => pageData.jobs || []),
+    ];
+  };
+
+  const filterJobsForUser = (allJobs, user) => {
+    const userId = getEntityId(user);
+
+    if (!userId) {
+      return [];
+    }
+
+    if (user?.role === "client" || user?.role === "admin") {
+      return allJobs.filter((job) => getEntityId(job.employerId) === userId);
+    }
+
+    if (user?.role === "freelancer") {
+      return allJobs.filter((job) =>
+        job.applicants?.some((applicant) => getEntityId(applicant) === userId)
+      );
+    }
+
+    return [];
+  };
 
   const fetchMyJobs = async () => {
     try {
       setLoading(true);
-      const data = await getJobs({ limit: 100 });
+      setMessage("");
+      const activeUser = getCurrentUserSnapshot(token);
 
-      const userId = user?._id || user?.id;
+      setCurrentUser(activeUser);
 
-      if (user?.role === "client" || user?.role === "admin") {
-        setJobs(data.jobs.filter((job) => job.employerId?._id === userId));
-      } else if (user?.role === "freelancer") {
-        setJobs(
-          data.jobs.filter((job) =>
-            job.applicants?.some((applicant) => applicant?._id === userId)
-          )
-        );
-      } else {
-        setJobs([]);
-      }
+      const allJobs = await loadAllJobs();
+      setJobs(filterJobsForUser(allJobs, activeUser));
     } catch (error) {
+      setJobs([]);
       setMessage(error.message || "Failed to load jobs");
     } finally {
       setLoading(false);
@@ -39,6 +135,7 @@ export default function MyJobsPage() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchMyJobs();
   }, []);
 
@@ -63,7 +160,7 @@ export default function MyJobsPage() {
     }
   };
 
-  if (!user) {
+  if (!token) {
     return (
       <>
         <NavBar />
@@ -88,7 +185,9 @@ export default function MyJobsPage() {
               Dashboard
             </span>
             <h1 className="mt-3 text-3xl font-extrabold text-gray-900">
-              {user.role === "freelancer" ? "Applied Jobs" : "My Posted Jobs"}
+              {currentUser?.role === "freelancer"
+                ? "Applied Jobs"
+                : "My Posted Jobs"}
             </h1>
           </div>
 
@@ -107,49 +206,64 @@ export default function MyJobsPage() {
               {jobs.map((job) => (
                 <div
                   key={job._id}
-                  className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm"
+                  className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm"
                 >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-800">{job.title}</h2>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {job.category || "General"} | {job.jobType || "Remote"}
-                      </p>
-                      <p className="mt-2 text-sm text-gray-600">
-                        Status: <span className="font-semibold">{job.status}</span> |
-                        Applicants:{" "}
-                        <span className="font-semibold">
-                          {job.applicants?.length || 0}
-                        </span>
-                      </p>
-                    </div>
+                  <JobImageBanner
+                    image={job.image}
+                    title={job.title}
+                    badge={job.jobType || "Remote"}
+                    meta={`${job.category || "General"} | ${
+                      job.location || "No location"
+                    }`}
+                    heightClass="h-40"
+                  />
 
-                    <div className="flex flex-wrap gap-3">
-                      <Link
-                        to={`/jobs/${job._id}`}
-                        className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow hover:opacity-95"
-                      >
-                        View
-                      </Link>
+                  <div className="p-5">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-800">
+                          {job.title}
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {job.category || "General"} | {job.jobType || "Remote"}
+                        </p>
+                        <p className="mt-2 text-sm text-gray-600">
+                          Status: <span className="font-semibold">{job.status}</span> |
+                          Applicants:{" "}
+                          <span className="font-semibold">
+                            {job.applicants?.length || 0}
+                          </span>
+                        </p>
+                      </div>
 
-                      {(user.role === "client" || user.role === "admin") && (
-                        <>
-                          <Link
-                            to={`/jobs/${job._id}/edit`}
-                            className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 shadow-sm hover:bg-purple-100"
-                          >
-                            Edit
-                          </Link>
+                      <div className="flex flex-wrap gap-3">
+                        <Link
+                          to={`/jobs/${job._id}`}
+                          className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow hover:opacity-95"
+                        >
+                          View
+                        </Link>
 
-                          <button
-                            onClick={() => handleDelete(job._id)}
-                            disabled={deletingId === job._id}
-                            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {deletingId === job._id ? "Deleting..." : "Delete"}
-                          </button>
-                        </>
-                      )}
+                        {(currentUser?.role === "client" ||
+                          currentUser?.role === "admin") && (
+                          <>
+                            <Link
+                              to={`/jobs/${job._id}/edit`}
+                              className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 shadow-sm hover:bg-purple-100"
+                            >
+                              Edit
+                            </Link>
+
+                            <button
+                              onClick={() => handleDelete(job._id)}
+                              disabled={deletingId === job._id}
+                              className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {deletingId === job._id ? "Deleting..." : "Delete"}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

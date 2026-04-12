@@ -1,16 +1,13 @@
 // frontend/src/pages/HomePage.jsx
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import NavBar from '../Components/NavBar'
 import Footer from '../Components/Footer'
+import JobImageBanner from '../Components/JobImageBanner'
+import { getJobs } from '../services/jobService'
 
 const STATS = [{ value:'50K+',label:'Freelancers'},{value:'12K+',label:'Active Jobs'},{value:'8K+',label:'Courses'},{value:'98%',label:'Satisfaction'}]
 const CATS = [{icon:'💻',title:'Web Development',jobs:1240},{icon:'🎨',title:'UI/UX Design',jobs:875},{icon:'📱',title:'Mobile Apps',jobs:634},{icon:'✍️',title:'Content Writing',jobs:920},{icon:'📊',title:'Data Science',jobs:412},{icon:'🎬',title:'Video Editing',jobs:560}]
-const JOBS = [
-  {title:'Full Stack MERN Developer',company:'TechNova Inc.',budget:'$800–$1,200',tags:['React','Node.js','MongoDB'],img:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',proposals:14,type:'Fixed Price'},
-  {title:'UI/UX Designer for SaaS App',company:'CloudBase Ltd.',budget:'$500–$900',tags:['Figma','Prototyping','Wireframe'],img:'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&q=80',proposals:9,type:'Hourly'},
-  {title:'Mobile App Developer',company:'AppSprint',budget:'$1,000–$2,000',tags:['React Native','Firebase','iOS'],img:'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&q=80',proposals:22,type:'Fixed Price'},
-]
 const COURSES = [
   {title:'Complete MERN Stack Bootcamp',instructor:'Sarah Johnson',rating:4.9,students:'12.4K',price:'$49',level:'Beginner',img:'https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400&q=80'},
   {title:'Freelancing Mastery',instructor:'Mike Chen',rating:4.8,students:'8.1K',price:'$39',level:'All Levels',img:'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&q=80'},
@@ -34,11 +31,39 @@ const SL = {display:'inline-block',background:'rgba(192,57,107,.08)',color:'#c03
 const CHIP = {background:'#f3eeff',color:'#6d1fa0',borderRadius:999,padding:'3px 12px',fontSize:12,fontWeight:500}
 const TAG  = {background:'#fff0f8',color:'#c0396b',border:'1px solid rgba(192,57,107,.25)',borderRadius:999,padding:'3px 12px',fontSize:12,fontWeight:600}
 const DIV  = {height:1,background:'linear-gradient(90deg,transparent,rgba(192,57,107,.2),transparent)',maxWidth:1200,margin:'0 auto'}
+const formatJobBudget = (job) => `${job.baseCurrency || 'USD'} ${job.budget}`
 
 function HomePage(){
   const [tab,setTab]=useState('hire')
   const [q,setQ]=useState('')
+  const [featuredJobs,setFeaturedJobs]=useState([])
+  const [jobsLoading,setJobsLoading]=useState(true)
+  const [jobsMessage,setJobsMessage]=useState('')
   const ph={hire:'e.g. React developer, UI designer...',work:'e.g. Web development, writing...',learn:'e.g. MERN stack, Python, Figma...'}
+
+  useEffect(()=>{
+    let active = true
+
+    const loadFeaturedJobs = async () => {
+      try{
+        setJobsLoading(true)
+        const data = await getJobs({ limit: 3, sortBy: 'createdAt', sortOrder: 'desc' })
+        if (!active) return
+        setFeaturedJobs(data.jobs || [])
+        setJobsMessage('')
+      }catch(error){
+        if (!active) return
+        setFeaturedJobs([])
+        setJobsMessage(error.message || 'Failed to load featured jobs')
+      }finally{
+        if (active) setJobsLoading(false)
+      }
+    }
+
+    loadFeaturedJobs()
+
+    return ()=>{ active = false }
+  },[])
 
   return(
     <>
@@ -146,21 +171,46 @@ function HomePage(){
               <Link to="/jobs" className="sc-la">View all jobs →</Link>
             </div>
             <div className="g3" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24}}>
-              {JOBS.map((j,i)=>(
-                <div key={i} className="sc-ch" style={CARD}>
-                  <div style={{height:160,overflow:'hidden'}}><img src={j.img} alt={j.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/></div>
-                  <div style={{padding:20}}>
-                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}><span style={TAG}>{j.type}</span><span style={{color:'#16a34a',fontWeight:700,fontSize:14}}>{j.budget}</span></div>
-                    <h3 style={{...PF,fontSize:17,fontWeight:700,marginBottom:4,color:'#1a0530'}}>{j.title}</h3>
-                    <p style={{color:'#9ca3af',fontSize:13,marginBottom:14}}>{j.company}</p>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>{j.tags.map(t=><span key={t} style={CHIP}>{t}</span>)}</div>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:14,borderTop:'1px solid #f3eeff'}}>
-                      <span style={{fontSize:12,color:'#9ca3af'}}>{j.proposals} proposals</span>
-                      <button className="sc-bp" style={{padding:'8px 18px',fontSize:13}}>Apply Now</button>
+              {jobsLoading ? (
+                <div style={{gridColumn:'1 / -1',background:'white',borderRadius:20,border:'1px solid #ede0f7',padding:'36px 24px',textAlign:'center',color:'#6b4a80',fontWeight:600}}>
+                  Loading featured jobs...
+                </div>
+              ) : jobsMessage ? (
+                <div style={{gridColumn:'1 / -1',background:'#fff7ed',borderRadius:20,border:'1px solid #fed7aa',padding:'36px 24px',textAlign:'center',color:'#c2410c',fontWeight:600}}>
+                  {jobsMessage}
+                </div>
+              ) : featuredJobs.length > 0 ? (
+                featuredJobs.map((job)=>(
+                  <div key={job._id} className="sc-ch" style={CARD}>
+                    <JobImageBanner
+                      image={job.image}
+                      title={job.title}
+                      badge={job.jobType || 'Remote'}
+                      meta={`${job.category || 'General'} | ${job.location || 'Remote friendly'}`}
+                      heightClass="h-48"
+                    />
+                    <div style={{padding:20}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,marginBottom:12}}>
+                        <span style={TAG}>{job.status}</span>
+                        <span style={{color:'#16a34a',fontWeight:700,fontSize:14,textAlign:'right'}}>{formatJobBudget(job)}</span>
+                      </div>
+                      <h3 style={{...PF,fontSize:17,fontWeight:700,marginBottom:4,color:'#1a0530'}}>{job.title}</h3>
+                      <p style={{color:'#9ca3af',fontSize:13,marginBottom:14}}>{job.employerId?.name || 'SkillConnect Client'} · {job.category || 'General'}</p>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+                        {(job.skillsRequired?.length > 0 ? job.skillsRequired.slice(0, 3) : ['No skills listed']).map(t=><span key={t} style={CHIP}>{t}</span>)}
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:14,borderTop:'1px solid #f3eeff',gap:12}}>
+                        <span style={{fontSize:12,color:'#9ca3af'}}>{job.applicants?.length || 0} applicants · {job.location || 'Remote friendly'}</span>
+                        <Link to={`/jobs/${job._id}`} className="sc-bp" style={{padding:'8px 18px',fontSize:13,textDecoration:'none',display:'inline-block'}}>View Job</Link>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div style={{gridColumn:'1 / -1',background:'white',borderRadius:20,border:'1px solid #ede0f7',padding:'36px 24px',textAlign:'center',color:'#6b4a80'}}>
+                  No featured jobs yet. Create the first job to make it appear here.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
