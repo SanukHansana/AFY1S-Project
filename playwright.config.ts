@@ -33,6 +33,17 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
+  /* Job and review integration tests in this repo use Playwright's request API
+     against the backend server, so start the backend automatically when needed. */
+  webServer: {
+    command: 'npm --prefix backend start',
+    url: 'http://localhost:5001/api/jobs',
+    // These integration tests call the backend API directly.
+    // Reuse an already-running backend instead of failing on port 5001.
+    reuseExistingServer: true,
+    timeout: 120000,
+  },
+
   /* Configure projects for major browsers */
   projects: [
     {
@@ -71,10 +82,4 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
 });
