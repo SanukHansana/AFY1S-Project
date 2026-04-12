@@ -1,0 +1,53 @@
+config:
+  target: "http://localhost:5001"
+
+  phases:
+    - duration: 20
+      arrivalRate: 2
+      name: "Warm up"
+
+    - duration: 40
+      arrivalRate: 5
+      rampTo: 10
+      name: "Load"
+
+    - duration: 20
+      arrivalRate: 10
+      name: "Peak"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "User Management Performance Test"
+    flow:
+
+      # REGISTER
+      - post:
+          url: "/api/users/register"
+          json:
+            name: "Test User {{$randomNumber(1,10000)}}"
+            email: "test{{$randomNumber(1,10000)}}@mail.com"
+            password: "Test@1234"
+          expect:
+            - statusCode: 201
+
+      - think: 2
+
+      # LOGIN
+      - post:
+          url: "/api/users/login"
+          json:
+            email: "test@test.com"
+            password: "Test@1234"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # GET PROFILE (SAFE ROUTE)
+      - get:
+          url: "/api/users/me"
+          expect:
+            - statusCode: 200
