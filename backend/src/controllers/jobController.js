@@ -1,15 +1,210 @@
 //backend/src/controllers/jobController.js
 import * as jobService from "../services/job.service.js";
-import Job from "../models/Job.js";
 import { convertCurrency } from "../services/exchangeRate.service.js";
+
+const MAX_TITLE_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 3000;
+const MAX_CATEGORY_LENGTH = 80;
+const MAX_LOCATION_LENGTH = 120;
+const BUDGET_PATTERN = /^\d+(\.\d{1,2})?$/;
+const JOB_TYPES = ["Remote", "On-site", "Hybrid"];
+const JOB_STATUSES = ["open", "applied", "in-progress", "completed", "cancelled"];
+
+const hasOwn = (object, key) =>
+  Object.prototype.hasOwnProperty.call(object, key);
+
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const normalizeDateString = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return "";
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const validateAndSanitizeJobPayload = (
+  payload,
+  { isCreate = false, currentJob = null } = {}
+) => {
+  const errors = [];
+  const sanitized = {};
+
+  if (isCreate || hasOwn(payload, "title")) {
+    const title = String(payload.title ?? "").trim();
+
+    if (!title) {
+      errors.push("Job title is required");
+    } else if (title.length > MAX_TITLE_LENGTH) {
+      errors.push(`Job title cannot exceed ${MAX_TITLE_LENGTH} characters`);
+    } else {
+      sanitized.title = title;
+    }
+  }
+
+  if (isCreate || hasOwn(payload, "description")) {
+    const description = String(payload.description ?? "").trim();
+
+    if (!description) {
+      errors.push("Job description is required");
+    } else if (description.length > MAX_DESCRIPTION_LENGTH) {
+      errors.push(
+        `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`
+      );
+    } else {
+      sanitized.description = description;
+    }
+  }
+
+  if (isCreate || hasOwn(payload, "category")) {
+    const category = String(payload.category ?? "").trim();
+
+    if (category.length > MAX_CATEGORY_LENGTH) {
+      errors.push(`Category cannot exceed ${MAX_CATEGORY_LENGTH} characters`);
+    } else {
+      sanitized.category = category || "General";
+    }
+  }
+
+  if (isCreate || hasOwn(payload, "budget")) {
+    const budgetText = String(payload.budget ?? "").trim();
+    const budget = Number(budgetText);
+
+    if (payload.budget === "" || payload.budget === null || payload.budget === undefined) {
+      errors.push("Budget is required");
+    } else if (!BUDGET_PATTERN.test(budgetText)) {
+      errors.push("Budget must contain only numbers with up to 2 decimal places");
+    } else if (!Number.isFinite(budget) || budget < 0) {
+      errors.push("Budget must be a valid non-negative number");
+    } else {
+      sanitized.budget = budget;
+    }
+  }
+
+  if (isCreate || hasOwn(payload, "skillsRequired")) {
+    const skillsRequired = payload.skillsRequired ?? [];
+
+    if (!Array.isArray(skillsRequired)) {
+      errors.push("Skills required must be provided as a list");
+    } else {
+      sanitized.skillsRequired = Array.from(
+        new Set(
+          skillsRequired
+            .map((skill) => String(skill).trim())
+            .filter(Boolean)
+        )
+      );
+    }
+  }
+
+  if (isCreate || hasOwn(payload, "deadline")) {
+    if (payload.deadline === null || payload.deadline === "") {
+      errors.push("Deadline is required");
+    } else {
+      const dateString = normalizeDateString(payload.deadline);
+
+      if (!dateString) {
+        errors.push("Deadline must be a valid date");
+      } else if (dateString < getTodayDateString()) {
+        errors.push("Deadline must be today or a future date");
+      } else {
+        sanitized.deadline = dateString;
+      }
+    }
+  }
+
+  if (hasOwn(payload, "jobType")) {
+    if (!JOB_TYPES.includes(payload.jobType)) {
+      errors.push("Job type must be Remote, On-site, or Hybrid");
+    } else {
+      sanitized.jobType = payload.jobType;
+    }
+  } else if (isCreate) {
+    sanitized.jobType = "Remote";
+  }
+
+  if (isCreate || hasOwn(payload, "location")) {
+    const location = String(payload.location ?? "").trim();
+
+    if (location.length > MAX_LOCATION_LENGTH) {
+      errors.push(`Location cannot exceed ${MAX_LOCATION_LENGTH} characters`);
+    } else {
+      sanitized.location = location;
+    }
+  }
+
+  if (!isCreate && hasOwn(payload, "status")) {
+    if (!JOB_STATUSES.includes(payload.status)) {
+      errors.push("Status is not valid for this job");
+    } else {
+      sanitized.status = payload.status;
+    }
+  }
+
+  const effectiveJobType = hasOwn(payload, "jobType")
+    ? sanitized.jobType
+    : currentJob?.jobType || "Remote";
+  const effectiveLocation = hasOwn(payload, "location")
+    ? sanitized.location
+    : currentJob?.location || "";
+
+  if (
+    ["On-site", "Hybrid"].includes(effectiveJobType) &&
+    !String(effectiveLocation ?? "").trim()
+  ) {
+    errors.push("Location is required for on-site and hybrid jobs");
+  }
+
+  return { errors, sanitized };
+};
+
 // Create Job (Client/Employer)
 export const createJob = async (req, res, next) => {
   try {
     // req.user comes from protect middleware (jwt payload: { id, role })
     const employerId = req.user.id;
+    const { errors, sanitized } = validateAndSanitizeJobPayload(req.body, {
+      isCreate: true,
+    });
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: errors[0],
+        errors,
+      });
+    }
 
     const job = await jobService.createJob({
-      ...req.body,
+      ...sanitized,
       employerId,
       status: "open",
       freelancerId: null,
@@ -138,8 +333,18 @@ export const updateJob = async (req, res, next) => {
 
     // prevent changing employerId directly
     const { employerId, applicants, freelancerId, ...safeBody } = req.body;
+    const { errors, sanitized } = validateAndSanitizeJobPayload(safeBody, {
+      currentJob: job,
+    });
 
-    const updated = await jobService.updateJob(req.params.id, safeBody);
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: errors[0],
+        errors,
+      });
+    }
+
+    const updated = await jobService.updateJob(req.params.id, sanitized);
 
     res.json(updated);
   } catch (err) {
