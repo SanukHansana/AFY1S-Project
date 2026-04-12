@@ -9,7 +9,19 @@
   "scripts": {
     "dev": "nodemon --dns-result-order=ipv4first src/server.js",
     "start": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test unittests/*.test.js",
+    "test:users": "node --test unittests/userservice.test.js",
+    "test:jobs": "node --test unittests/jobservice.test.js",
+    "test:reviews": "node --test unittests/reviewservice.test.js",
+    "test:skills": "node --test unittests/skill.service.test.js",
+    "test:courses": "node --test unittests/course.service.test.js",
+    "test:enrollments": "node --test unittests/enrollment.service.test.js",
+    "test:unit": "node --test unittests/*.test.js",
+    "test:integration": "node --test integration/*.test.js",
+    "test:integration:workflow": "node --test integration/skill.enrollment.integration.test.js",
+    "test:integration:progress": "node --test integration/course.progress.integration.test.js",
+    "test:integration:api": "node --test integration/api.endpoints.integration.test.js",
+    "test:all": "node --test unittests/*.test.js integration/*.test.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
