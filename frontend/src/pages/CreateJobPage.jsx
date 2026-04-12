@@ -1,15 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
+import JobImageBanner from "../Components/JobImageBanner";
 import { createJob, getJobById, updateJob } from "../services/jobService";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 3000;
 const MAX_CATEGORY_LENGTH = 80;
 const MAX_LOCATION_LENGTH = 120;
+const MAX_IMAGE_DATA_LENGTH = 1100000;
+const MAX_JOB_IMAGE_FILE_SIZE = 750 * 1024;
 const BUDGET_INPUT_PATTERN = /^\d*(\.\d{0,2})?$/;
 const BUDGET_VALUE_PATTERN = /^\d+(\.\d{1,2})?$/;
+const ALLOWED_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
+];
 
 const initialForm = {
   title: "",
@@ -20,6 +30,7 @@ const initialForm = {
   deadline: "",
   jobType: "Remote",
   location: "",
+  image: "",
 };
 
 const formatDateForInput = (value) => {
@@ -50,13 +61,36 @@ const sanitizeSkills = (value) =>
     )
   );
 
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.readAsDataURL(file);
+  });
+
 const preventInvalidBudgetKeys = (event) => {
   if (["-", "+", "e", "E"].includes(event.key)) {
     event.preventDefault();
   }
 };
 
-const validateJobForm = (form) => {
+const getEntityId = (entity) => {
+  if (!entity) {
+    return "";
+  }
+
+  if (typeof entity === "string") {
+    return entity;
+  }
+
+  return entity._id || entity.id || "";
+};
+
+const validateJobForm = (
+  form,
+  { imageSelectionError = "", imageBusy = false } = {}
+) => {
   const title = form.title.trim();
   const description = form.description.trim();
   const category = form.category.trim();
@@ -96,6 +130,14 @@ const validateJobForm = (form) => {
     fieldErrors.jobType = "Please select a valid job type";
   }
 
+  if (imageBusy) {
+    fieldErrors.image = "Please wait until the selected image finishes loading";
+  } else if (imageSelectionError) {
+    fieldErrors.image = imageSelectionError;
+  } else if (form.image && form.image.length > MAX_IMAGE_DATA_LENGTH) {
+    fieldErrors.image = "Job image is too large";
+  }
+
   if (location.length > MAX_LOCATION_LENGTH) {
     fieldErrors.location = `Location cannot exceed ${MAX_LOCATION_LENGTH} characters`;
   } else if (form.jobType !== "Remote" && !location) {
@@ -123,6 +165,7 @@ const validateJobForm = (form) => {
       deadline: form.deadline,
       jobType: form.jobType,
       location,
+      image: form.image || "",
     },
   };
 };
@@ -138,6 +181,7 @@ const mapJobToForm = (job) => ({
   deadline: formatDateForInput(job.deadline),
   jobType: job.jobType || "Remote",
   location: job.location || "",
+  image: job.image || "",
 });
 
 export default function CreateJobPage() {
@@ -147,17 +191,28 @@ export default function CreateJobPage() {
 
   const savedUser = localStorage.getItem("user");
   const user = savedUser ? JSON.parse(savedUser) : null;
-  const userId = user?._id || user?.id;
+  const userId = getEntityId(user);
 
   const [form, setForm] = useState(initialForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [selectedImageName, setSelectedImageName] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageSelectionError, setImageSelectionError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(isEditMode);
   const [canManageJob, setCanManageJob] = useState(!isEditMode);
   const [jobStatus, setJobStatus] = useState("");
+  const imageObjectUrlRef = useRef("");
   const todayDate = getTodayDateString();
+  const previewImage = imagePreview || form.image;
+  const hasSelectedImage = Boolean(previewImage);
+  const previewMeta = `${form.category.trim() || "General"} | ${
+    form.location.trim() ||
+    (form.jobType === "Remote" ? "Remote friendly" : "Add location")
+  }`;
   const getInputClassName = (fieldName) =>
     `w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 ${
       fieldErrors[fieldName]
@@ -167,13 +222,29 @@ export default function CreateJobPage() {
   const getFieldMessageClassName = (fieldName) =>
     `mt-1 text-xs ${fieldErrors[fieldName] ? "text-red-600" : "text-gray-500"}`;
 
+  const clearObjectImagePreview = () => {
+    if (imageObjectUrlRef.current) {
+      URL.revokeObjectURL(imageObjectUrlRef.current);
+      imageObjectUrlRef.current = "";
+    }
+  };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id, isEditMode]);
+
   useEffect(() => {
     if (!isEditMode) {
+      clearObjectImagePreview();
       setPageLoading(false);
       setCanManageJob(true);
       setForm(initialForm);
       setFieldErrors({});
       setHasSubmitted(false);
+      setSelectedImageName("");
+      setImagePreview("");
+      setImageBusy(false);
+      setImageSelectionError("");
       setMessage("");
       setJobStatus("");
       return;
@@ -186,10 +257,14 @@ export default function CreateJobPage() {
         setFieldErrors({});
         setHasSubmitted(false);
         setCanManageJob(false);
+        clearObjectImagePreview();
+        setImagePreview("");
+        setImageBusy(false);
+        setImageSelectionError("");
 
         const job = await getJobById(id);
         const isOwner =
-          user?.role === "admin" || job.employerId?._id === userId;
+          user?.role === "admin" || getEntityId(job.employerId) === userId;
 
         if (!isOwner) {
           setMessage("You can only edit jobs you created.");
@@ -199,6 +274,10 @@ export default function CreateJobPage() {
         setForm(mapJobToForm(job));
         setFieldErrors({});
         setHasSubmitted(false);
+        setSelectedImageName(job.image ? "Current uploaded image" : "");
+        setImagePreview(job.image || "");
+        setImageBusy(false);
+        setImageSelectionError("");
         setJobStatus(job.status || "open");
         setCanManageJob(true);
       } catch (error) {
@@ -210,6 +289,13 @@ export default function CreateJobPage() {
 
     loadJobForEdit();
   }, [id, isEditMode, user?.role, userId]);
+
+  useEffect(() => () => {
+    if (imageObjectUrlRef.current) {
+      URL.revokeObjectURL(imageObjectUrlRef.current);
+      imageObjectUrlRef.current = "";
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -231,7 +317,12 @@ export default function CreateJobPage() {
     setMessage("");
 
     if (hasSubmitted) {
-      setFieldErrors(validateJobForm(nextForm).fieldErrors);
+      setFieldErrors(
+        validateJobForm(nextForm, {
+          imageSelectionError,
+          imageBusy,
+        }).fieldErrors
+      );
       return;
     }
 
@@ -251,10 +342,134 @@ export default function CreateJobPage() {
     });
   };
 
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setMessage("");
+    setImageBusy(true);
+    setImageSelectionError("");
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setImageBusy(false);
+      setImageSelectionError("Please choose a PNG, JPG, WEBP, or GIF image");
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: "Please choose a PNG, JPG, WEBP, or GIF image",
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_JOB_IMAGE_FILE_SIZE) {
+      setImageBusy(false);
+      setImageSelectionError("Image must be 750 KB or smaller");
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: "Image must be 750 KB or smaller",
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    const previousPreview = imagePreview;
+    const previousImageName = selectedImageName;
+    const previousObjectUrl = imageObjectUrlRef.current;
+
+    try {
+      const nextPreview = URL.createObjectURL(file);
+
+      imageObjectUrlRef.current = nextPreview;
+      setImagePreview(nextPreview);
+      setSelectedImageName(file.name);
+
+      const image = await readFileAsDataUrl(file);
+      const nextForm = {
+        ...form,
+        image,
+      };
+
+      if (previousObjectUrl && previousObjectUrl !== nextPreview) {
+        URL.revokeObjectURL(previousObjectUrl);
+      }
+
+      setImageBusy(false);
+      setImageSelectionError("");
+      setForm(nextForm);
+      setFieldErrors((prev) => {
+        const nextErrors = { ...prev };
+        delete nextErrors.image;
+        return nextErrors;
+      });
+
+      if (hasSubmitted) {
+        setFieldErrors(
+          validateJobForm(nextForm, {
+            imageSelectionError: "",
+            imageBusy: false,
+          }).fieldErrors
+        );
+      }
+    } catch (error) {
+      const imageErrorMessage =
+        error.message || "Failed to load the selected image";
+      clearObjectImagePreview();
+      imageObjectUrlRef.current = previousObjectUrl;
+      setImagePreview(previousPreview || form.image || "");
+      setSelectedImageName(
+        previousImageName || (form.image ? "Current uploaded image" : "")
+      );
+      setImageBusy(false);
+      setImageSelectionError(imageErrorMessage);
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: imageErrorMessage,
+      }));
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = () => {
+    const nextForm = {
+      ...form,
+      image: "",
+    };
+
+    clearObjectImagePreview();
+    setForm(nextForm);
+    setSelectedImageName("");
+    setImagePreview("");
+    setImageBusy(false);
+    setImageSelectionError("");
+    setMessage("");
+
+    setFieldErrors((prev) => {
+      const nextErrors = { ...prev };
+      delete nextErrors.image;
+      return nextErrors;
+    });
+
+    if (hasSubmitted) {
+      setFieldErrors(
+        validateJobForm(nextForm, {
+          imageSelectionError: "",
+          imageBusy: false,
+        }).fieldErrors
+      );
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setHasSubmitted(true);
-    const { fieldErrors: nextFieldErrors, payload } = validateJobForm(form);
+    const { fieldErrors: nextFieldErrors, payload } = validateJobForm(form, {
+      imageSelectionError,
+      imageBusy,
+    });
     setFieldErrors(nextFieldErrors);
 
     if (Object.keys(nextFieldErrors).length > 0) {
@@ -368,6 +583,63 @@ export default function CreateJobPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 gap-5">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Job Image
+              </label>
+              <div className="rounded-2xl border border-dashed border-purple-200 bg-purple-50/40 p-4">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                  onChange={handleImageChange}
+                  aria-invalid={Boolean(fieldErrors.image)}
+                  aria-describedby="image-message"
+                  className="block w-full cursor-pointer rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-pink-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-pink-700 hover:file:bg-pink-100"
+                />
+
+                <div className="mt-4 overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
+                  <JobImageBanner
+                    image={previewImage}
+                    title={form.title.trim() || "Your job title"}
+                    badge={form.jobType || "Remote"}
+                    meta={previewMeta}
+                    heightClass="h-56"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                    <p className="text-sm text-gray-600">
+                      {selectedImageName ||
+                        (hasSelectedImage
+                          ? "Uploaded job image"
+                          : "Default job image")}
+                    </p>
+
+                    {hasSelectedImage ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        disabled={imageBusy}
+                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Remove Image
+                      </button>
+                    ) : (
+                      <span className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700">
+                        Using default image
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p id="image-message" className={getFieldMessageClassName("image")}>
+                  {fieldErrors.image
+                    ? fieldErrors.image
+                    : imageBusy
+                      ? "Preparing selected image..."
+                      : "Optional. Upload PNG, JPG, WEBP, or GIF up to 750 KB. Selecting a new file replaces the current image."}
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-700">
                 Job Title
@@ -551,10 +823,12 @@ export default function CreateJobPage() {
             <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || imageBusy}
                 className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow hover:opacity-95 disabled:opacity-60"
               >
-                {loading
+                {imageBusy
+                  ? "Preparing Image..."
+                  : loading
                   ? isEditMode
                     ? "Updating..."
                     : "Creating..."

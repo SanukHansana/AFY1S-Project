@@ -1,4 +1,3 @@
-//frontend/src/pages/JobsPage.jsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import JobCard from "../Components/JobCard";
@@ -29,6 +28,10 @@ export default function JobsPage() {
   const canViewMyJobs = user?.role === "client";
   const canCreateJob = user?.role === "client" || user?.role === "admin";
 
+  const scrollToTop = () => {
+    window.scrollTo(0, 0);
+  };
+
   const fetchAllJobs = async (
     customPage = page,
     customFilters = filters,
@@ -58,6 +61,7 @@ export default function JobsPage() {
   };
 
   useEffect(() => {
+    scrollToTop();
     fetchAllJobs(1, filters, currency);
   }, [currency]);
 
@@ -70,6 +74,7 @@ export default function JobsPage() {
 
   const handleSearch = () => {
     setPage(1);
+    scrollToTop();
     fetchAllJobs(1, filters, currency);
   };
 
@@ -77,11 +82,13 @@ export default function JobsPage() {
     setFilters(initialFilters);
     setCurrency("LKR");
     setPage(1);
+    scrollToTop();
     fetchAllJobs(1, initialFilters, "LKR");
   };
 
   const goToPage = (newPage) => {
     setPage(newPage);
+    scrollToTop();
     fetchAllJobs(newPage, filters, currency);
   };
 
