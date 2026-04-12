@@ -341,8 +341,12 @@ Run the review unit test from the project root:
 
 ```bash
 node --test backend/unittests/reviewservice.test.js
-```
 
+Run enrollment testing from the project root:
+```bash
+node --test test-enrollment-summary.js
+
+Run the
 ### Integration Testing
 
 The project uses Playwright request-based API integration tests.
@@ -369,6 +373,9 @@ Notes:
 
 - These integration tests currently target the backend API, not the frontend UI
 - Playwright is configured to start or reuse the backend server automatically
+
+Run course integration testing
+node --test backend/test-wikipedia-integration.js
 
 ### Performance Testing
 
