@@ -11,6 +11,17 @@ const getEntityId = (entity) => entity?._id || entity?.id || entity;
 
 const uniqueTag = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const getRelativeDateString = (offsetDays = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 async function registerUser(request, role, tag) {
   const response = await request.post(`${API_BASE}/users/register`, {
     data: {
@@ -56,6 +67,42 @@ test("job API supports client management and freelancer application flow", async
     `${tag}-freelancer`
   );
 
+  const missingDeadlineResponse = await request.post(`${API_BASE}/jobs`, {
+    headers: authHeaders(client.token),
+    data: {
+      title: `Missing Deadline Job ${tag}`,
+      description: "This should be rejected because the deadline is required.",
+      category: "Testing",
+      budget: 500,
+      skillsRequired: ["Validation"],
+      deadline: "",
+      jobType: "Remote",
+      location: "",
+    },
+  });
+
+  expect(missingDeadlineResponse.status()).toBe(400);
+  const missingDeadlineData = await missingDeadlineResponse.json();
+  expect(missingDeadlineData.message).toContain("Deadline is required");
+
+  const invalidCreateResponse = await request.post(`${API_BASE}/jobs`, {
+    headers: authHeaders(client.token),
+    data: {
+      title: `Past Deadline Job ${tag}`,
+      description: "This should be rejected because the deadline is in the past.",
+      category: "Testing",
+      budget: 500,
+      skillsRequired: ["Validation"],
+      deadline: getRelativeDateString(-1),
+      jobType: "Remote",
+      location: "",
+    },
+  });
+
+  expect(invalidCreateResponse.status()).toBe(400);
+  const invalidCreateData = await invalidCreateResponse.json();
+  expect(invalidCreateData.message).toContain("Deadline");
+
   const createResponse = await request.post(`${API_BASE}/jobs`, {
     headers: authHeaders(client.token),
     data: {
@@ -64,7 +111,7 @@ test("job API supports client management and freelancer application flow", async
       category: "Testing",
       budget: 1250,
       skillsRequired: ["Playwright", "Node.js"],
-      deadline: "2030-12-31",
+      deadline: getRelativeDateString(7),
       jobType: "Remote",
       location: "Colombo",
     },
@@ -93,7 +140,7 @@ test("job API supports client management and freelancer application flow", async
       category: "QA",
       budget: 1500,
       skillsRequired: ["Playwright", "API Testing"],
-      deadline: "2031-01-15",
+      deadline: getRelativeDateString(14),
       jobType: "Hybrid",
       location: "Kandy",
       employerId: getEntityId(freelancer.user),

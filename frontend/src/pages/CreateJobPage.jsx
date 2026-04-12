@@ -4,6 +4,13 @@ import NavBar from "../Components/NavBar";
 import Footer from "../Components/Footer";
 import { createJob, getJobById, updateJob } from "../services/jobService";
 
+const MAX_TITLE_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 3000;
+const MAX_CATEGORY_LENGTH = 80;
+const MAX_LOCATION_LENGTH = 120;
+const BUDGET_INPUT_PATTERN = /^\d*(\.\d{0,2})?$/;
+const BUDGET_VALUE_PATTERN = /^\d+(\.\d{1,2})?$/;
+
 const initialForm = {
   title: "",
   description: "",
@@ -25,6 +32,99 @@ const formatDateForInput = (value) => {
   }
 
   return new Date(value).toISOString().split("T")[0];
+};
+
+const getTodayDateString = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().split("T")[0];
+};
+
+const sanitizeSkills = (value) =>
+  Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter(Boolean)
+    )
+  );
+
+const preventInvalidBudgetKeys = (event) => {
+  if (["-", "+", "e", "E"].includes(event.key)) {
+    event.preventDefault();
+  }
+};
+
+const validateJobForm = (form) => {
+  const title = form.title.trim();
+  const description = form.description.trim();
+  const category = form.category.trim();
+  const location = form.location.trim();
+  const budgetText = form.budget.trim();
+  const todayDate = getTodayDateString();
+  const fieldErrors = {};
+  const skillsRequired = sanitizeSkills(form.skillsRequired);
+
+  if (!title) {
+    fieldErrors.title = "Job title is required";
+  } else if (title.length > MAX_TITLE_LENGTH) {
+    fieldErrors.title = `Job title cannot exceed ${MAX_TITLE_LENGTH} characters`;
+  }
+
+  if (!description) {
+    fieldErrors.description = "Job description is required";
+  } else if (description.length > MAX_DESCRIPTION_LENGTH) {
+    fieldErrors.description = `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`;
+  }
+
+  if (category.length > MAX_CATEGORY_LENGTH) {
+    fieldErrors.category = `Category cannot exceed ${MAX_CATEGORY_LENGTH} characters`;
+  }
+
+  const budgetValue = Number(budgetText);
+
+  if (budgetText === "") {
+    fieldErrors.budget = "Budget is required";
+  } else if (!BUDGET_VALUE_PATTERN.test(budgetText)) {
+    fieldErrors.budget = "Budget must contain only numbers with up to 2 decimal places";
+  } else if (!Number.isFinite(budgetValue) || budgetValue < 0) {
+    fieldErrors.budget = "Budget must be a valid non-negative number";
+  }
+
+  if (!["Remote", "On-site", "Hybrid"].includes(form.jobType)) {
+    fieldErrors.jobType = "Please select a valid job type";
+  }
+
+  if (location.length > MAX_LOCATION_LENGTH) {
+    fieldErrors.location = `Location cannot exceed ${MAX_LOCATION_LENGTH} characters`;
+  } else if (form.jobType !== "Remote" && !location) {
+    fieldErrors.location = "Location is required for on-site and hybrid jobs";
+  }
+
+  if (!form.deadline) {
+    fieldErrors.deadline = "Deadline is required";
+  } else if (form.deadline < todayDate) {
+    fieldErrors.deadline = "Deadline must be today or a future date";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+
+  return {
+    fieldErrors: {},
+    payload: {
+      title,
+      description,
+      category: category || "General",
+      budget: budgetValue,
+      skillsRequired,
+      deadline: form.deadline,
+      jobType: form.jobType,
+      location,
+    },
+  };
 };
 
 const mapJobToForm = (job) => ({
@@ -50,17 +150,31 @@ export default function CreateJobPage() {
   const userId = user?._id || user?.id;
 
   const [form, setForm] = useState(initialForm);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(isEditMode);
   const [canManageJob, setCanManageJob] = useState(!isEditMode);
   const [jobStatus, setJobStatus] = useState("");
+  const todayDate = getTodayDateString();
+  const getInputClassName = (fieldName) =>
+    `w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 ${
+      fieldErrors[fieldName]
+        ? "border-red-300 bg-red-50 text-red-900 placeholder:text-red-400 focus:border-red-400 focus:ring-red-100"
+        : "border-gray-300 focus:border-pink-400 focus:ring-pink-100"
+    }`;
+  const getFieldMessageClassName = (fieldName) =>
+    `mt-1 text-xs ${fieldErrors[fieldName] ? "text-red-600" : "text-gray-500"}`;
 
   useEffect(() => {
     if (!isEditMode) {
       setPageLoading(false);
       setCanManageJob(true);
       setForm(initialForm);
+      setFieldErrors({});
+      setHasSubmitted(false);
+      setMessage("");
       setJobStatus("");
       return;
     }
@@ -69,6 +183,8 @@ export default function CreateJobPage() {
       try {
         setPageLoading(true);
         setMessage("");
+        setFieldErrors({});
+        setHasSubmitted(false);
         setCanManageJob(false);
 
         const job = await getJobById(id);
@@ -81,6 +197,8 @@ export default function CreateJobPage() {
         }
 
         setForm(mapJobToForm(job));
+        setFieldErrors({});
+        setHasSubmitted(false);
         setJobStatus(job.status || "open");
         setCanManageJob(true);
       } catch (error) {
@@ -94,44 +212,60 @@ export default function CreateJobPage() {
   }, [id, isEditMode, user?.role, userId]);
 
   const handleChange = (e) => {
-    setForm((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value } = e.target;
+    const nextValue =
+      name === "budget" && value !== "" && !BUDGET_INPUT_PATTERN.test(value)
+        ? null
+        : value;
+
+    if (nextValue === null) {
+      return;
+    }
+
+    const nextForm = {
+      ...form,
+      [name]: nextValue,
+    };
+
+    setForm(nextForm);
+    setMessage("");
+
+    if (hasSubmitted) {
+      setFieldErrors(validateJobForm(nextForm).fieldErrors);
+      return;
+    }
+
+    setFieldErrors((prev) => {
+      if (!prev[name] && !(name === "jobType" && prev.location)) {
+        return prev;
+      }
+
+      const nextErrors = { ...prev };
+      delete nextErrors[name];
+
+      if (name === "jobType") {
+        delete nextErrors.location;
+      }
+
+      return nextErrors;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setHasSubmitted(true);
+    const { fieldErrors: nextFieldErrors, payload } = validateJobForm(form);
+    setFieldErrors(nextFieldErrors);
 
-    if (!form.title || !form.description || !form.budget) {
-      setMessage("Title, description, and budget are required");
-      return;
-    }
-
-    const budgetValue = Number(form.budget);
-
-    if (Number.isNaN(budgetValue) || budgetValue < 0) {
-      setMessage("Budget must be a valid non-negative number");
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setMessage("");
       return;
     }
 
     try {
       setLoading(true);
       setMessage("");
-
-      const payload = {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category.trim() || "General",
-        budget: budgetValue,
-        skillsRequired: form.skillsRequired
-          .split(",")
-          .map((skill) => skill.trim())
-          .filter(Boolean),
-        deadline: form.deadline || null,
-        jobType: form.jobType,
-        location: form.location.trim(),
-      };
+      setFieldErrors({});
 
       const savedJob = isEditMode
         ? await updateJob(id, payload)
@@ -233,7 +367,7 @@ export default function CreateJobPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5">
+          <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 gap-5">
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-700">
                 Job Title
@@ -244,8 +378,14 @@ export default function CreateJobPage() {
                 value={form.title}
                 onChange={handleChange}
                 placeholder="Enter job title"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                maxLength={MAX_TITLE_LENGTH}
+                aria-invalid={Boolean(fieldErrors.title)}
+                aria-describedby="title-message"
+                className={getInputClassName("title")}
               />
+              <p id="title-message" className={getFieldMessageClassName("title")}>
+                {fieldErrors.title || `Up to ${MAX_TITLE_LENGTH} characters`}
+              </p>
             </div>
 
             <div>
@@ -258,8 +398,17 @@ export default function CreateJobPage() {
                 onChange={handleChange}
                 rows="6"
                 placeholder="Enter job description"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                maxLength={MAX_DESCRIPTION_LENGTH}
+                aria-invalid={Boolean(fieldErrors.description)}
+                aria-describedby="description-message"
+                className={getInputClassName("description")}
               />
+              <p
+                id="description-message"
+                className={getFieldMessageClassName("description")}
+              >
+                {fieldErrors.description || `Up to ${MAX_DESCRIPTION_LENGTH} characters`}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -273,8 +422,17 @@ export default function CreateJobPage() {
                   value={form.category}
                   onChange={handleChange}
                   placeholder="Web Development"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                  maxLength={MAX_CATEGORY_LENGTH}
+                  aria-invalid={Boolean(fieldErrors.category)}
+                  aria-describedby="category-message"
+                  className={getInputClassName("category")}
                 />
+                <p
+                  id="category-message"
+                  className={getFieldMessageClassName("category")}
+                >
+                  {fieldErrors.category || `Optional, up to ${MAX_CATEGORY_LENGTH} characters`}
+                </p>
               </div>
 
               <div>
@@ -282,14 +440,21 @@ export default function CreateJobPage() {
                   Budget (USD)
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   name="budget"
                   value={form.budget}
                   onChange={handleChange}
+                  onKeyDown={preventInvalidBudgetKeys}
                   placeholder="500"
-                  min="0"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  aria-invalid={Boolean(fieldErrors.budget)}
+                  aria-describedby="budget-message"
+                  className={getInputClassName("budget")}
                 />
+                <p id="budget-message" className={getFieldMessageClassName("budget")}>
+                  {fieldErrors.budget || "Required. Numbers only, up to 2 decimal places"}
+                </p>
               </div>
             </div>
 
@@ -302,12 +467,17 @@ export default function CreateJobPage() {
                   name="jobType"
                   value={form.jobType}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                  aria-invalid={Boolean(fieldErrors.jobType)}
+                  aria-describedby="jobType-message"
+                  className={getInputClassName("jobType")}
                 >
                   <option value="Remote">Remote</option>
                   <option value="On-site">On-site</option>
                   <option value="Hybrid">Hybrid</option>
                 </select>
+                <p id="jobType-message" className={getFieldMessageClassName("jobType")}>
+                  {fieldErrors.jobType || "Select how this job will be carried out"}
+                </p>
               </div>
 
               <div>
@@ -320,8 +490,20 @@ export default function CreateJobPage() {
                   value={form.location}
                   onChange={handleChange}
                   placeholder="Colombo / Remote"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                  maxLength={MAX_LOCATION_LENGTH}
+                  aria-invalid={Boolean(fieldErrors.location)}
+                  aria-describedby="location-message"
+                  className={getInputClassName("location")}
                 />
+                <p
+                  id="location-message"
+                  className={getFieldMessageClassName("location")}
+                >
+                  {fieldErrors.location ||
+                    (form.jobType === "Remote"
+                      ? `Optional, up to ${MAX_LOCATION_LENGTH} characters`
+                      : "Required for on-site and hybrid jobs")}
+                </p>
               </div>
             </div>
 
@@ -336,7 +518,7 @@ export default function CreateJobPage() {
                   value={form.skillsRequired}
                   onChange={handleChange}
                   placeholder="React, Node.js, MongoDB"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                  className={getInputClassName("skillsRequired")}
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Separate skills with commas
@@ -352,8 +534,17 @@ export default function CreateJobPage() {
                   name="deadline"
                   value={form.deadline}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                  min={todayDate}
+                  aria-invalid={Boolean(fieldErrors.deadline)}
+                  aria-describedby="deadline-message"
+                  className={getInputClassName("deadline")}
                 />
+                <p
+                  id="deadline-message"
+                  className={getFieldMessageClassName("deadline")}
+                >
+                  {fieldErrors.deadline || "Required. Deadline can be today or a future date only"}
+                </p>
               </div>
             </div>
 
